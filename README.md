@@ -19,6 +19,8 @@ in ant:
    	ant debug
    	ant installd
 
+Example is based on methods from API level >= 11, but you can easly switch to API >= 7 thanks ActionBarSherlock library and switching imports
+
 # Embeding in your project
 
 run this command:

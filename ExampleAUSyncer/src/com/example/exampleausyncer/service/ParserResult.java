@@ -14,14 +14,11 @@
  * limitations under the License
  */
 
-package com.appunite.syncer;
+package com.example.exampleausyncer.service;
 
-import android.net.Uri;
-import android.os.Bundle;
+public interface ParserResult {
 
-interface IDownloadService {
-	long getLastSuccess(in Uri uri);
-	long getLastError(in Uri uri);
-    boolean inProgress(in Uri uri);
-    void download(in Uri uri, in Bundle bundle, in boolean withForce);
+	void addFeature(String guid, String description, String longDescription,
+			double latitude, double longitude);
+
 }

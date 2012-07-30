@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <item
+        android:id="@+id/menu_refresh"
+        android:alphabeticShortcut="r"
+        android:icon="@drawable/ic_menu_refresh"
+        android:orderInCategory="3"
+        android:showAsAction="ifRoom"
+        android:title="@string/menu_refresh"/>
+    <item
+        android:id="@+id/menu_progress"
+        android:actionLayout="@layout/action_bar_indeterminate_progress"
+        android:orderInCategory="3"
+        android:icon="@drawable/ic_menu_refresh"
+        android:showAsAction="ifRoom"
+        android:title="@string/menu_in_progress"
+        android:visible="false"/>
+
+</menu>

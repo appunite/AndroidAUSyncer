@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Widget.ProgressBar.ActionBar" parent="@android:Widget.ProgressBar">
+        <item name="android:indeterminateDrawable">@drawable/progress_mini_actionbar</item>
+        <item name="android:animationResolution">33</item>
+        <item name="android:minHeight">32dip</item>
+        <item name="android:maxHeight">32dip</item>
+        <item name="android:minWidth">32dip</item>
+        <item name="android:maxWidth">32dip</item>
+    </style>
+    
+</resources>

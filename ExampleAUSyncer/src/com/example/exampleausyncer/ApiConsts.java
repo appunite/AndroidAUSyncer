@@ -14,14 +14,8 @@
  * limitations under the License
  */
 
-package com.appunite.syncer;
+package com.example.exampleausyncer;
 
-import android.net.Uri;
-import android.os.Bundle;
-
-interface IDownloadService {
-	long getLastSuccess(in Uri uri);
-	long getLastError(in Uri uri);
-    boolean inProgress(in Uri uri);
-    void download(in Uri uri, in Bundle bundle, in boolean withForce);
+public class ApiConsts {
+	public static final String TICKETOMATS_API = "http://www.poznan.pl/featureserver/featureserver.cgi/biletomaty_wgs/";
 }

@@ -4,6 +4,15 @@ AUSyncer/.settings/
 AUSyncer/.project
 AUSyncer/.classpath
 AUSyncer/local.properties
+AUSyncer/lint.xml
+
+AUSyncerTest/bin/
+AUSyncerTest/gen/
+AUSyncerTest/.settings/
+AUSyncerTest/.project
+AUSyncerTest/.classpath
+AUSyncerTest/local.properties
+AUSyncerTest/lint.xml
 
 ExampleAUSyncer/bin/
 ExampleAUSyncer/gen/
@@ -11,6 +20,7 @@ ExampleAUSyncer/.settings/
 ExampleAUSyncer/.project
 ExampleAUSyncer/.classpath
 ExampleAUSyncer/local.properties
+ExampleAUSyncer/lint.xml
 
 *.tmp
 *.bak
