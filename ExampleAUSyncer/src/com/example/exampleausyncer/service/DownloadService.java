@@ -64,6 +64,22 @@ public class DownloadService extends AbsDownloadService {
 	}
 	
 	@Override
+	protected boolean isNetworkNeeded(Uri uri, Bundle bundle) {
+		int match = sURIMatcher.match(uri);
+		switch (match) {
+		case EXAMPLE:
+			return true;
+		case EXAMPLE_ID:
+			// there is no reason to return there false because
+			// this method require network connectivity. False value
+			// is returned for example propose.
+			return false;
+		default:
+			throw new IllegalArgumentException();
+		}
+	}
+	
+	@Override
 	protected long taskWakeLockTimeout(Uri uri, Bundle bundle) {
 		return 30 * 1000; // 30s
 	}

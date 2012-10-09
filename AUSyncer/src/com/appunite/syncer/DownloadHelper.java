@@ -342,5 +342,5 @@ public class DownloadHelper implements ServiceConnection {
 		mDownloadHelperStatus.reportStatus(screenVisible, screenEmpty,
 				screenProgress, progressIndicator, lastError);
 	}
-
+	
 }

@@ -17,6 +17,8 @@ public class DownloadService extends AbsDownloadService {
 
 	public Uri mLastCalledUri;
 
+	public int requireConnectionCalls = 0;
+
 	@Override
 	protected boolean onHandleUri(Uri uri, Bundle bundle, boolean withForce) {
 		numberOfCalls++;
@@ -28,6 +30,12 @@ public class DownloadService extends AbsDownloadService {
 		} catch (InterruptedException e) {
 		}
 		return true;
+	}
+	
+	@Override
+	protected boolean isNetworkNeeded(Uri uri, Bundle bundle) {
+		requireConnectionCalls += 1;
+		return false;
 	}
 
 }

@@ -1,11 +1,15 @@
 package com.appunite.ausyncer.tests.base;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
-import static org.mockito.Mockito.times;
-import static org.mockito.Matchers.*;
-import static org.mockito.Mockito.verify;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.argThat;
+import static org.mockito.Matchers.notNull;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.sql.Date;
@@ -28,7 +32,6 @@ import android.os.Looper;
 import android.os.RemoteException;
 import android.test.AndroidTestCase;
 import android.test.mock.MockContext;
-import android.widget.SlidingDrawer;
 
 import com.appunite.syncer.AbsDownloadService;
 import com.appunite.syncer.DownloadHelper;
@@ -48,6 +51,7 @@ public class DownloadHelperTest extends AndroidTestCase {
 		public boolean mWithForce;
 		public long mLastError = -1;
 		public boolean mInProgress = false;
+		public boolean mIsNetworkNeeded = true;
 		public long mLastSuccess = -1;
 
 		@Override
@@ -57,6 +61,7 @@ public class DownloadHelperTest extends AndroidTestCase {
 			mBundle = bundle;
 			mWithForce = withForce;
 			mInProgress = true;
+			mIsNetworkNeeded = true;
 		}
 
 		@Override
@@ -138,7 +143,7 @@ public class DownloadHelperTest extends AndroidTestCase {
 						Mockito.anyInt())).thenReturn(true);
 		mDownloadHelper.onActivityResume();
 	}
-
+	
 	public void testIfReceiveBroadcasts() {
 		Matcher<IntentFilter> correctIntentFilterMatcher = new BaseMatcher<IntentFilter>() {
 

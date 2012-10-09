@@ -154,4 +154,10 @@ public class DownloadServiceTest extends ServiceTestCase<DownloadService> {
 		assertThat("call should not be executed", mService.numberOfCalls,
 				equalTo(2));
 	}
+	
+	public void testNetworkUriAvailability() throws RemoteException {
+		mService.requireConnectionCalls = 0;
+		mInterface.download(AUTHORITY_URI, null, true);
+		assertThat(mService.requireConnectionCalls,is(equalTo(1)));
+	}
 }

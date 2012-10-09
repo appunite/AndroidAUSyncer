@@ -18,9 +18,12 @@ package com.appunite.syncer;
 
 import java.util.ArrayList;
 
+import android.annotation.SuppressLint;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -60,7 +63,7 @@ import android.os.RemoteException;
  * 		switch (match) {
  * 		case EXAMPLE:
  * 		case EXAMPLE_ID:
- * 			// download data and return true if successed
+ * 			// download data and return true if succeed
  * 			return true;
  * 		default:
  * 			throw new IllegalArgumentException();
@@ -71,11 +74,12 @@ import android.os.RemoteException;
  * </pre>
  * 
  * <p>
- * And do not forget adding INTERNET permission and your service to your
+ * And do not forget adding INTERNET and ACCESS_NETWORK_STATE permissions and your service to your
  * manifest file:
  * 
  * <pre class="prettyprint">
  * &lt;uses-permission android:name="android.permission.INTERNET" /&gt;
+ * &lt;uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" /&gt;
  * &lt;service
  * 	android:name=".service.DownloadService"
  * 	android:exported="false"&gt;
@@ -168,6 +172,34 @@ public abstract class AbsDownloadService extends Service {
 
 	protected long getLastError(Uri uri) throws RemoteException {
 		return mDownloadSharedPreference.getLastError(uri);
+	}
+	
+	/**
+	 * Return time if network is expected forr given uri. If network is required
+	 * onHandlerUri will not be executed while network is not available. Default
+	 * implementation will assume that all intents require network connection.
+	 * 
+	 * <p>
+	 * Example implementation
+	 * 
+	 * <pre class="prettyprint">
+	 * &#064;Override
+	 * protected long isNetworkNeeded(Uri uri, Bundle bundle) {
+	 * 	return false;
+	 * }
+	 * </pre>
+	 * 
+	 * </p>
+	 * 
+	 * @param uri
+	 *            that was requested to refresh
+	 * @param bundle
+	 *            data that was given
+	 * @return Return <code>true</code> if network is required for given uri,
+	 *         <code>false</code> if connection is not required for given uri.
+	 */
+	protected boolean isNetworkNeeded(Uri uri, Bundle bundle) {
+		return true;
 	}
 
 	protected void download(Uri uri, Bundle bundle, boolean withForce)
@@ -290,6 +322,7 @@ public abstract class AbsDownloadService extends Service {
 		return mBinder;
 	}
 
+	@SuppressLint("Wakelock")
 	protected void run() {
 		for (;;) {
 			try {
@@ -313,7 +346,11 @@ public abstract class AbsDownloadService extends Service {
 				}
 				boolean success = false;
 				try {
-					success = onHandleUri(task.uri, task.bundle, task.withForce);
+					if (isNetworkNeeded(task.uri, task.bundle) && !hasInternetConnection()) {
+						success = false;
+					} else {
+						success = onHandleUri(task.uri, task.bundle, task.withForce);
+					}
 				} finally {
 					if (timeout >= 0 && mWakeLock.isHeld())
 						mWakeLock.release();
@@ -359,7 +396,16 @@ public abstract class AbsDownloadService extends Service {
 		mClose = false;
 		thread.start();
 	}
-
+	
+	private boolean hasInternetConnection() {
+		ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+		NetworkInfo netInfo = cm.getActiveNetworkInfo();
+		if (netInfo != null && netInfo.isConnected())
+			return true;
+		
+		return false;
+	}
+	
 	@Override
 	public void onDestroy() {
 		synchronized (this) {
