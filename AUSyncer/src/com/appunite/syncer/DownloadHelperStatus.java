@@ -16,8 +16,6 @@
 
 package com.appunite.syncer;
 
-import java.util.Date;
-
 public interface DownloadHelperStatus {
 
 	/**
@@ -72,11 +70,11 @@ public interface DownloadHelperStatus {
 	 *            should covering progress bar be displayed to user
 	 * @param progressIndicator
 	 *            should progress indicator not covering user view be displayed
-	 * @param lastError
-	 *            <code>null</code> if no error occurred in last update,
-	 *            otherwise time of this error
+	 * @param lastStatus
+	 *            status of last connection
 	 */
-	void reportStatus(boolean screenVisible, boolean screenEmpty,
-			boolean screenProgress, boolean progressIndicator, Date lastError);
-
+	void onReportStatus(boolean screenVisible, boolean screenEmpty,
+			boolean screenProgress, boolean progressIndicator,
+			AUSyncerStatus lastStatus);
+	
 }

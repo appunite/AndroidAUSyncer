@@ -16,13 +16,26 @@
 
 package com.appunite.syncer;
 
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import com.appunite.ausyncer.BuildConfig;
+
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.net.Uri;
+import android.util.Log;
 
 public class DownloadSharedPreference {
+	private static final String PREFIX_LAST_MESSAGE_OBJ = "_last_error_obj";
+	private static final String PREFIX_LAST_MESSAGE = "_last_error_message";
+	private static final String PREFIX_LAST_TIME = "_last_error_time";
 	private static final String DOWNLOAD_PREFS_NAME = "download_preferences";
+	
+	private static final String TAG = DownloadSharedPreference.class.getCanonicalName();
+	
 	private Context mContext;
 	private SharedPreferences mSharedPreferences;
 
@@ -33,35 +46,53 @@ public class DownloadSharedPreference {
 				DOWNLOAD_PREFS_NAME, Context.MODE_PRIVATE
 						| Context.MODE_MULTI_PROCESS);
 	}
-	
-	public long getLastSuccess(Uri uri) {
-		String preferenceKey = uriToPreferenceKey(uri) + "_last_success";
-		return mSharedPreferences.getLong(preferenceKey, -1);
+
+	public AUSyncerStatus getLastStatus(Uri uri) {
+		String preferenceKeyMessage = uriToPreferenceKey(uri) + PREFIX_LAST_MESSAGE;
+		String preferenceKeyTime = uriToPreferenceKey(uri) + PREFIX_LAST_TIME;
+		String preferenceKeyMessageObject = uriToPreferenceKey(uri) + PREFIX_LAST_MESSAGE_OBJ;
+		
+		if (!mSharedPreferences.contains(preferenceKeyMessage)) {
+			return AUSyncerStatus.statusNeverDownloaded();
+		}
+		int message = mSharedPreferences.getInt(preferenceKeyMessage, -1);
+		long statusTimeMs = mSharedPreferences.getLong(preferenceKeyTime, -1);
+		String messageObjectStr = mSharedPreferences.getString(preferenceKeyMessageObject, null);
+		JSONObject messageObject = null;
+		if (messageObjectStr != null) {
+			try {
+				messageObject = new JSONObject(messageObjectStr);
+			} catch (JSONException e) {
+				if (BuildConfig.DEBUG) {
+					Log.e(TAG, "Wrong value saved in preferences", e);
+				}
+				return AUSyncerStatus.statusNeverDownloaded();
+			}
+		}
+		return new AUSyncerStatus(message, statusTimeMs, messageObject);
 	}
-	
-	public long getLastError(Uri uri) {
-		String preferenceKey = uriToPreferenceKey(uri) + "_last_error";
-		return mSharedPreferences.getLong(preferenceKey, -1);
-	}
-	
+
 	private String uriToPreferenceKey(Uri uri) {
 		return uri.toString();
 	}
 
-	public void setLastError(Uri uri, long lastErrorTimeMs) {
-		String preferenceKey = uriToPreferenceKey(uri) + "_last_error";
+	public void setLastStatus(Uri uri, AUSyncerStatus status) {
+		String preferenceKeyMessage = uriToPreferenceKey(uri) + PREFIX_LAST_MESSAGE;
+		String preferenceKeyTime = uriToPreferenceKey(uri) + PREFIX_LAST_TIME;
+		String preferenceKeyMessageObject = uriToPreferenceKey(uri) + PREFIX_LAST_MESSAGE_OBJ;
+		
 		Editor editor = mSharedPreferences.edit();
-		editor.putLong(preferenceKey, lastErrorTimeMs);
+		editor.putInt(preferenceKeyMessage, status.getMessage());
+		editor.putLong(preferenceKeyTime, status.getStatusTimeMs());
+		JSONObject object = status.getMsgObjectOrNull();
+		if (object == null) {
+			editor.remove(preferenceKeyMessageObject);
+		} else {
+			editor.putString(preferenceKeyMessageObject, object.toString());
+		}
 		editor.commit();
 	}
 
-	public void setLastSync(Uri uri, long lastSuccesTimeMs) {
-		String preferenceKey = uriToPreferenceKey(uri) + "_last_success";
-		Editor editor = mSharedPreferences.edit();
-		editor.putLong(preferenceKey, lastSuccesTimeMs);
-		editor.commit();
-	}
-	
 	public void clear() {
 		Editor editor = mSharedPreferences.edit();
 		editor.clear();

@@ -1,9 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+
     <string name="app_name">Main</string>
     <string name="main_no_items">There is no item on the list</string>
-    <string name="main_error_occure">Error occured %1$s ago</string>
+    <string name="main_error_occure">%1$s occured %2$s ago</string>
     <string name="main_error_refresh">refresh</string>
     <string name="menu_refresh">Refresh</string>
     <string name="menu_in_progress">Refreshing…</string>
+    
+    <string name="error_custom">Error occure: %1$s</string>
+    <string name="error_network_connection">Network connection error</string>
+    <string name="error_unknown">Unknown error</string>
 </resources>

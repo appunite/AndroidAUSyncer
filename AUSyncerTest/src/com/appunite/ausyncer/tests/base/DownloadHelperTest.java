@@ -12,8 +12,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.sql.Date;
-
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
@@ -33,6 +31,7 @@ import android.os.RemoteException;
 import android.test.AndroidTestCase;
 import android.test.mock.MockContext;
 
+import com.appunite.syncer.AUSyncerStatus;
 import com.appunite.syncer.AbsDownloadService;
 import com.appunite.syncer.DownloadHelper;
 import com.appunite.syncer.DownloadHelperStatus;
@@ -49,10 +48,9 @@ public class DownloadHelperTest extends AndroidTestCase {
 		public Uri mUri = null;
 		public Bundle mBundle;
 		public boolean mWithForce;
-		public long mLastError = -1;
 		public boolean mInProgress = false;
 		public boolean mIsNetworkNeeded = true;
-		public long mLastSuccess = -1;
+		public AUSyncerStatus mLastStatus;
 
 		@Override
 		public void download(Uri uri, Bundle bundle, boolean withForce)
@@ -63,15 +61,10 @@ public class DownloadHelperTest extends AndroidTestCase {
 			mInProgress = true;
 			mIsNetworkNeeded = true;
 		}
-
+		
 		@Override
-		public long getLastError(Uri uri) throws RemoteException {
-			return mLastError;
-		}
-
-		@Override
-		public long getLastSuccess(Uri uri) throws RemoteException {
-			return mLastSuccess;
+		public AUSyncerStatus getLastStatus(Uri arg0) throws RemoteException {
+			return mLastStatus;
 		}
 
 		@Override
@@ -179,9 +172,8 @@ public class DownloadHelperTest extends AndroidTestCase {
 		reset(mDownloadHelperStatusMock);
 
 		sendOnProgressChange(value, AUTORITY_URI);
-		verify(mDownloadHelperStatusMock, times(1)).reportStatus(false, false,
-				true, true, null);
-
+		verify(mDownloadHelperStatusMock, times(1)).onReportStatus(false,
+				false, true, true, AUSyncerStatus.statusNeverDownloaded());
 	}
 
 	public void testLastError() throws InterruptedException {
@@ -189,12 +181,11 @@ public class DownloadHelperTest extends AndroidTestCase {
 
 		assertThat(receiver, is(notNullValue()));
 
-		mDownloadServiceMock.mLastError = 123;
-		sendOnProgressChange(receiver, AUTORITY_URI);
+		mDownloadServiceMock.mLastStatus = AUSyncerStatus.statusInternalIssue();
 		mDownloadHelper.updateLocalData(true, false);
-		verify(mDownloadHelperStatusMock).reportStatus(Mockito.anyBoolean(),
+		verify(mDownloadHelperStatusMock).onReportStatus(Mockito.anyBoolean(),
 				Mockito.anyBoolean(), Mockito.anyBoolean(),
-				Mockito.anyBoolean(), Mockito.notNull(Date.class));
+				Mockito.anyBoolean(), Mockito.notNull(AUSyncerStatus.class));
 		
 		
 		mDownloadHelper.onActivityPause();
@@ -206,10 +197,10 @@ public class DownloadHelperTest extends AndroidTestCase {
 		Thread.sleep(2000);
 		
 		// After onActivityPause nothing should be reported
-		verify(mDownloadHelperStatusMock, times(0)).reportStatus(
+		verify(mDownloadHelperStatusMock, times(0)).onReportStatus(
 				Mockito.anyBoolean(), Mockito.anyBoolean(),
 				Mockito.anyBoolean(), Mockito.anyBoolean(),
-				Mockito.any(Date.class));
+				Mockito.any(AUSyncerStatus.class));
 	}
 
 	public void testSyncStatuses() throws RemoteException {
@@ -221,47 +212,42 @@ public class DownloadHelperTest extends AndroidTestCase {
 		assertThat("requested url does not match", mDownloadServiceMock.mUri,
 				equalTo(AUTORITY_URI));
 		assertTrue(mDownloadServiceMock.mWithForce);
-		verify(mDownloadHelperStatusMock).reportStatus(false, false, true,
-				true, null);
+		verify(mDownloadHelperStatusMock).onReportStatus(false, false, true,
+				true, AUSyncerStatus.statusNeverDownloaded());
 		reset(mDownloadHelperStatusMock);
 
-		mDownloadServiceMock.mLastSuccess = 4;
+		mDownloadServiceMock.mLastStatus = AUSyncerStatus.statusSuccess();
 		mDownloadServiceMock.mInProgress = false;
 		sendOnProgressChange(receiver, AUTORITY_URI);
-		verify(mDownloadHelperStatusMock).reportStatus(false, false, true,
-				true, null);
+		verify(mDownloadHelperStatusMock).onReportStatus(false, false, true,
+				true, AUSyncerStatus.statusNeverDownloaded());
 		reset(mDownloadHelperStatusMock);
 
 		mDownloadHelper.updateLocalData(true, false);
-		verify(mDownloadHelperStatusMock).reportStatus(true, false, false,
-				false, null);
+		verify(mDownloadHelperStatusMock).onReportStatus(true, false, false,
+				false, AUSyncerStatus.statusSuccess());
 		reset(mDownloadHelperStatusMock);
 
 		mDownloadServiceMock.mInProgress = true;
 		sendOnProgressChange(receiver, AUTORITY_URI);
-		verify(mDownloadHelperStatusMock).reportStatus(true, false, false,
-				true, null);
+		verify(mDownloadHelperStatusMock).onReportStatus(true, false, false,
+				true, AUSyncerStatus.statusSuccess());
 		reset(mDownloadHelperStatusMock);
 
 		mDownloadHelper.updateLocalData(false, false);
-		verify(mDownloadHelperStatusMock).reportStatus(false, false, true,
-				true, null);
-		reset(mDownloadHelperStatusMock);
-
-		mDownloadHelper.updateLocalData(false, true);
-		verify(mDownloadHelperStatusMock).reportStatus(false, false, true,
-				true, null);
+		verify(mDownloadHelperStatusMock).onReportStatus(false, false, true,
+				true, AUSyncerStatus.statusNeverDownloaded());
 		reset(mDownloadHelperStatusMock);
 
 		mDownloadHelper.updateLocalData(true, true);
-		verify(mDownloadHelperStatusMock).reportStatus(false, true, false,
-				true, null);
+		verify(mDownloadHelperStatusMock).onReportStatus(false, true, false,
+				true, AUSyncerStatus.statusSuccess());
 		reset(mDownloadHelperStatusMock);
 
 		mDownloadServiceMock.mInProgress = false;
 		sendOnProgressChange(receiver, AUTORITY_URI);
-		verify(mDownloadHelperStatusMock).reportStatus(false, true, false,
-				false, null);
+		verify(mDownloadHelperStatusMock).onReportStatus(false, true, false,
+				false, AUSyncerStatus.statusSuccess());
 		reset(mDownloadHelperStatusMock);
 	}
 
@@ -288,8 +274,8 @@ public class DownloadHelperTest extends AndroidTestCase {
 				.getValue();
 		assertNotNull(serviceConnection);
 
-		verify(mDownloadHelperStatusMock, times(1)).reportStatus(false, false,
-				true, true, null);
+		verify(mDownloadHelperStatusMock, times(1)).onReportStatus(false, false,
+				true, true, AUSyncerStatus.statusNeverDownloaded());
 
 		ArgumentCaptor<BroadcastReceiver> broadcastReceiverCaptor = ArgumentCaptor
 				.forClass(BroadcastReceiver.class);
@@ -302,8 +288,8 @@ public class DownloadHelperTest extends AndroidTestCase {
 
 		// simulate bind service
 		serviceConnection.onServiceConnected(null, mDownloadServiceMock);
-		verify(mDownloadHelperStatusMock, times(1)).reportStatus(false, false,
-				true, true, null);
+		verify(mDownloadHelperStatusMock, times(1)).onReportStatus(false, false,
+				true, true, AUSyncerStatus.statusNeverDownloaded());
 
 		reset(mDownloadHelperStatusMock);
 

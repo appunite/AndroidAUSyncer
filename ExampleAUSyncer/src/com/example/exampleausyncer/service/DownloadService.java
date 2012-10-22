@@ -16,10 +16,19 @@
 
 package com.example.exampleausyncer.service;
 
+import java.io.IOException;
+import java.net.URISyntaxException;
+
+import org.apache.http.client.ClientProtocolException;
+import org.json.JSONException;
+
+import android.content.OperationApplicationException;
 import android.content.UriMatcher;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.RemoteException;
 
+import com.appunite.syncer.AUSyncerStatus;
 import com.appunite.syncer.AbsDownloadService;
 import com.example.exampleausyncer.ApiConsts;
 import com.example.exampleausyncer.provider.ExampleContract;
@@ -28,12 +37,16 @@ import com.example.exampleausyncer.provider.ExampleContract;
 public class DownloadService extends AbsDownloadService {
 	public static final String ACTION_SYNC = "com.example.exampleausyncer.ACTION_SYNC";
 	
+	// Custom errors for AUSyncerStatus
+	public static final String CUSTOM_ERROR_STRING = "custom_error_string";
+	
 	private static final UriMatcher sURIMatcher = new UriMatcher(
 			UriMatcher.NO_MATCH);
 	
 
 	private static final int EXAMPLE = 0;
 	private static final int EXAMPLE_ID = 1;
+
 
 
 	static {
@@ -44,16 +57,35 @@ public class DownloadService extends AbsDownloadService {
 	}
 	
 	@Override
-	protected boolean onHandleUri(Uri uri, Bundle bundle, boolean withForce) {
+	protected AUSyncerStatus onHandleUri(Uri uri, Bundle bundle, boolean withForce) {
 		int match = sURIMatcher.match(uri);
-		switch (match) {
-		case EXAMPLE:
-		case EXAMPLE_ID:
-			Downloader downloader = new Downloader(this);
-			return downloader.download(ApiConsts.TICKETOMATS_API);
-		default:
-			throw new IllegalArgumentException();
+		try {
+			switch (match) {
+			case EXAMPLE:
+			case EXAMPLE_ID:
+				Downloader downloader = new Downloader(this);
+				downloader.download(ApiConsts.TICKETOMATS_API);
+				// return AUSyncerStatus.statusCustomError(new
+				// JSONObject().put(CUSTOM_ERROR_STRING, "ala ma kota"));
+//				return AUSyncerStatus.statusCustomError("some error");
+				return AUSyncerStatus.statusSuccess();
+			default:
+				throw new IllegalArgumentException();
 
+			}
+			
+		} catch (ClientProtocolException e) {
+			return AUSyncerStatus.statusInternalIssue();
+		} catch (IOException e) {
+			return AUSyncerStatus.statusNoInternetConnection();
+		} catch (URISyntaxException e) {
+			return AUSyncerStatus.statusInternalIssue();
+		} catch (JSONException e) {
+			return AUSyncerStatus.statusInternalIssue();
+		} catch (RemoteException e) {
+			return AUSyncerStatus.statusInternalIssue();
+		} catch (OperationApplicationException e) {
+			return AUSyncerStatus.statusInternalIssue();
 		}
 	}
 

@@ -18,6 +18,7 @@ package com.appunite.syncer;
 
 import java.util.ArrayList;
 
+
 import android.annotation.SuppressLint;
 import android.app.Service;
 import android.content.Context;
@@ -132,15 +133,6 @@ public abstract class AbsDownloadService extends Service {
 
 	private IDownloadService.Stub mBinder = new IDownloadService.Stub() {
 
-		@Override
-		public long getLastSuccess(Uri uri) throws RemoteException {
-			return AbsDownloadService.this.getLastSuccess(uri);
-		}
-
-		@Override
-		public long getLastError(Uri uri) throws RemoteException {
-			return AbsDownloadService.this.getLastError(uri);
-		}
 
 		@Override
 		public boolean inProgress(Uri uri) throws RemoteException {
@@ -153,27 +145,22 @@ public abstract class AbsDownloadService extends Service {
 			AbsDownloadService.this.download(uri, bundle, withForce);
 		}
 
+
+		@Override
+		public AUSyncerStatus getLastStatus(Uri uri) throws RemoteException {
+			return AbsDownloadService.this.getLastStatus(uri);
+		}
+
 	};
-
-	protected long getLastSuccess(Uri uri) throws RemoteException {
-		return mDownloadSharedPreference.getLastSuccess(uri);
-	}
-
-	private void setLastSync(Uri uri) {
-		long currentTimeMillis = System.currentTimeMillis();
-		mDownloadSharedPreference.setLastSync(uri, currentTimeMillis);
-		mDownloadSharedPreference.setLastError(uri, -1);
-	}
-
-	private void setLastError(Uri uri) {
-		long currentTimeMillis = System.currentTimeMillis();
-		mDownloadSharedPreference.setLastError(uri, currentTimeMillis);
-	}
-
-	protected long getLastError(Uri uri) throws RemoteException {
-		return mDownloadSharedPreference.getLastError(uri);
-	}
 	
+	protected AUSyncerStatus getLastStatus(Uri uri) throws RemoteException {
+		return mDownloadSharedPreference.getLastStatus(uri);
+	}
+
+	protected void setLastStatus(Uri uri, AUSyncerStatus status) {
+		mDownloadSharedPreference.setLastStatus(uri, status);
+	}
+
 	/**
 	 * Return time if network is expected forr given uri. If network is required
 	 * onHandlerUri will not be executed while network is not available. Default
@@ -205,10 +192,11 @@ public abstract class AbsDownloadService extends Service {
 	protected void download(Uri uri, Bundle bundle, boolean withForce)
 			throws RemoteException {
 		if (withForce != true) {
-			long lastSuccessMillis = getLastSuccess(uri);
-			if (lastSuccessMillis > 0) {
+			AUSyncerStatus lastStatus = getLastStatus(uri);
+			if (lastStatus.isSuccess()) {
 				long currentTimeMillis = System.currentTimeMillis();
-				if (!forceDownload(uri, lastSuccessMillis, currentTimeMillis)) {
+				if (!forceDownload(uri, lastStatus.getStatusTimeMs(),
+						currentTimeMillis)) {
 					return;
 				}
 			}
@@ -344,23 +332,20 @@ public abstract class AbsDownloadService extends Service {
 				} else if (timeout > 0) {
 					mWakeLock.acquire(timeout);
 				}
-				boolean success = false;
+				AUSyncerStatus status;
 				try {
 					if (isNetworkNeeded(task.uri, task.bundle) && !hasInternetConnection()) {
-						success = false;
+						status = AUSyncerStatus.statusNoInternetConnection();
 					} else {
-						success = onHandleUri(task.uri, task.bundle, task.withForce);
+						status = onHandleUri(task.uri, task.bundle, task.withForce);
 					}
+
 				} finally {
 					if (timeout >= 0 && mWakeLock.isHeld())
 						mWakeLock.release();
 				}
-
-				if (success) {
-					setLastSync(task.uri);
-				} else {
-					setLastError(task.uri);
-				}
+	
+				setLastStatus(task.uri, status);
 				synchronized (this) {
 					mQueue.remove(0);
 				}
@@ -373,7 +358,7 @@ public abstract class AbsDownloadService extends Service {
 		}
 	}
 
-	protected abstract boolean onHandleUri(Uri uri, Bundle bundle,
+	protected abstract AUSyncerStatus onHandleUri(Uri uri, Bundle bundle,
 			boolean withForce);
 
 	@Override

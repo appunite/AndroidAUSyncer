@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.equalTo;
 import android.net.Uri;
 import android.test.AndroidTestCase;
 
+import com.appunite.syncer.AUSyncerStatus;
 import com.appunite.syncer.DownloadSharedPreference;
 
 public class DownloadSharedPreferencesTest extends AndroidTestCase {
@@ -33,16 +34,16 @@ public class DownloadSharedPreferencesTest extends AndroidTestCase {
 	}
 
 	public void testForStartingPoint() {
-		assertThat("At start point last success should be -1",
-				mPreference.getLastSuccess(AUTHORITY_URI), equalTo(-1L));
-		assertThat("At start point last error should be -1",
-				mPreference.getLastError(AUTHORITY_URI), equalTo(-1L));
+		assertThat("At start point status should be never downloaded",
+				mPreference.getLastStatus(AUTHORITY_URI),
+				equalTo(AUSyncerStatus.statusNeverDownloaded()));
 	}
 
 	public void testForSaveing() {
-		mPreference.setLastSync(AUTHORITY_URI, 123L);
-		assertThat("value should be exacly as saved",
-				mPreference.getLastSuccess(AUTHORITY_URI), equalTo(123L));
+		AUSyncerStatus statusSuccess = AUSyncerStatus.statusSuccess();
+		mPreference.setLastStatus(AUTHORITY_URI, statusSuccess);
+		assertThat(mPreference.getLastStatus(AUTHORITY_URI), equalTo(statusSuccess));
+		assertThat(mPreference.getLastStatus(AUTHORITY_URI).getStatusTimeMs(), equalTo(statusSuccess.getStatusTimeMs()));
 	}
 
 }

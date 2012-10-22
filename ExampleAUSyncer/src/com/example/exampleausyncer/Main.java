@@ -16,8 +16,6 @@
 
 package com.example.exampleausyncer;
 
-import java.util.Date;
-
 import android.app.Activity;
 import android.app.LoaderManager.LoaderCallbacks;
 import android.content.CursorLoader;
@@ -35,6 +33,7 @@ import android.widget.CursorAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import com.appunite.syncer.AUSyncerStatus;
 import com.appunite.syncer.DownloadHelper;
 import com.appunite.syncer.DownloadHelperStatus;
 import com.example.exampleausyncer.adapter.MainAdapter;
@@ -135,33 +134,6 @@ public class Main extends Activity implements OnClickListener,
 		mDownloadHelper.startDownloading(null, true);
 	}
 
-	public void reportStatus(boolean screenVisible, boolean screenEmpty,
-			boolean screenProgress, boolean progressIndicator, Date lastError) {
-		mListView.setVisibility(screenVisible ? View.VISIBLE : View.GONE);
-		mEmptyView.setVisibility(screenEmpty ? View.VISIBLE : View.GONE);
-		mProgressBar.setVisibility(screenProgress ? View.VISIBLE : View.GONE);
-		mErrorLayout
-				.setVisibility(lastError != null ? View.VISIBLE : View.GONE);
-		mErrorRefreshButton.setVisibility(!progressIndicator ? View.VISIBLE
-				: View.GONE);
-		mErrorRefreshProgress.setVisibility(progressIndicator ? View.VISIBLE
-				: View.GONE);
-		if (lastError != null) {
-			long currentTimeMillis = System.currentTimeMillis();
-			CharSequence lastErrorString = DateUtils.getRelativeTimeSpanString(
-					currentTimeMillis, lastError.getTime(), 0,
-					DateUtils.FORMAT_ABBREV_ALL);
-			String errorFormat = getString(R.string.main_error_occure);
-			CharSequence errorMessage = String.format(errorFormat,
-					lastErrorString);
-			mErrorMessageTextView.setText(errorMessage);
-		}
-		if (mProgressIndicator != progressIndicator) {
-			this.mProgressIndicator = progressIndicator;
-			invalidateOptionsMenu();
-		}
-	}
-
 	public Loader<Cursor> onCreateLoader(int id, Bundle args) {
 		return new CursorLoader(this, ExampleContract.Example.CONTENT_URI,
 				MainAdapter.projection, null, null, null);
@@ -176,4 +148,46 @@ public class Main extends Activity implements OnClickListener,
 		mDownloadHelper.updateLocalData(null);
 		mAdapter.swapCursor(null);
 	}
+
+	public void onReportStatus(boolean screenVisible, boolean screenEmpty,
+			boolean screenProgress, boolean progressIndicator,
+			AUSyncerStatus lastStatus) {
+		
+		mListView.setVisibility(screenVisible ? View.VISIBLE : View.GONE);
+		mEmptyView.setVisibility(screenEmpty ? View.VISIBLE : View.GONE);
+		mProgressBar.setVisibility(screenProgress ? View.VISIBLE : View.GONE);
+		mErrorLayout
+				.setVisibility(lastStatus.isError() ? View.VISIBLE : View.GONE);
+		mErrorRefreshButton.setVisibility(!progressIndicator ? View.VISIBLE
+				: View.GONE);
+		mErrorRefreshProgress.setVisibility(progressIndicator ? View.VISIBLE
+				: View.GONE);
+		if (lastStatus.isError()) {
+			long currentTimeMillis = System.currentTimeMillis();
+			CharSequence lastErrorString = DateUtils.getRelativeTimeSpanString(
+					currentTimeMillis, lastStatus.getStatusTimeMs(), 0,
+					DateUtils.FORMAT_ABBREV_ALL);
+			String errorFormat = getString(R.string.main_error_occure);
+			String errorType;
+
+			if (lastStatus.isCustomIssue()) {
+				String error = lastStatus.getMsgObjectAsStringOrThrow();
+				errorType = String.format(getString(R.string.error_custom),error);
+			} else if (lastStatus.isNoInternetConnection()) {
+				errorType = getString(R.string.error_network_connection);
+			} else {
+				errorType = getString(R.string.error_unknown);
+			}
+
+			CharSequence errorMsg = String.format(errorFormat, errorType,
+					lastErrorString);
+			mErrorMessageTextView.setText(errorMsg);
+
+		}
+		if (mProgressIndicator != progressIndicator) {
+			this.mProgressIndicator = progressIndicator;
+			invalidateOptionsMenu();
+		}
+	}
+
 }

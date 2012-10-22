@@ -3,6 +3,7 @@ package com.appunite.ausyncer.tests;
 import android.net.Uri;
 import android.os.Bundle;
 
+import com.appunite.syncer.AUSyncerStatus;
 import com.appunite.syncer.AbsDownloadService;
 
 public class DownloadService extends AbsDownloadService {
@@ -20,7 +21,7 @@ public class DownloadService extends AbsDownloadService {
 	public int requireConnectionCalls = 0;
 
 	@Override
-	protected boolean onHandleUri(Uri uri, Bundle bundle, boolean withForce) {
+	protected AUSyncerStatus onHandleUri(Uri uri, Bundle bundle, boolean withForce) {
 		numberOfCalls++;
 		mLastCalledUri = uri;
 		mLastCalledBundle = bundle;
@@ -29,7 +30,7 @@ public class DownloadService extends AbsDownloadService {
 			Thread.sleep(100);
 		} catch (InterruptedException e) {
 		}
-		return true;
+		return AUSyncerStatus.statusSuccess();
 	}
 	
 	@Override

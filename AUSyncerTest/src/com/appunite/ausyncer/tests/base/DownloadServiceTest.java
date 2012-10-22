@@ -11,6 +11,7 @@ import android.test.ServiceTestCase;
 
 import com.appunite.ausyncer.tests.DownloadService;
 import com.appunite.ausyncer.tests.base.Tests.ValueRunnable;
+import com.appunite.syncer.AUSyncerStatus;
 import com.appunite.syncer.DownloadSharedPreference;
 import com.appunite.syncer.IDownloadService;
 
@@ -54,19 +55,22 @@ public class DownloadServiceTest extends ServiceTestCase<DownloadService> {
 	public void testSharedPreferences() {
 		DownloadSharedPreference downloadSharedPreference = new DownloadSharedPreference(
 				getContext());
-		assertThat("should be not set at start Point",
-				downloadSharedPreference.getLastSuccess(AUTHORITY_URI),
-				equalTo(-1L));
-		downloadSharedPreference.setLastSync(AUTHORITY_URI, 1000L);
-		assertThat("saved LastSync should be 1000",
-				downloadSharedPreference.getLastSuccess(AUTHORITY_URI),
-				equalTo(1000L));
+		assertThat("should be not downloaded set at start Point",
+				downloadSharedPreference.getLastStatus(AUTHORITY_URI),
+				equalTo(AUSyncerStatus.statusNeverDownloaded()));
+		
+		AUSyncerStatus success = AUSyncerStatus.statusSuccess();
+		downloadSharedPreference.setLastStatus(AUTHORITY_URI, success);
+		assertThat("saved LastSync should be 1000", downloadSharedPreference
+				.getLastStatus(AUTHORITY_URI).getStatusTimeMs(),
+				equalTo(success.getStatusTimeMs()));
 	}
 
 	public void testPassingArguments() throws Exception {
 
-		assertEquals("At start point last success should be -1", -1,
-				mInterface.getLastSuccess(AUTHORITY_URI));
+		assertThat("should be not downloaded set at start Point",
+				mInterface.getLastStatus(AUTHORITY_URI),
+				equalTo(AUSyncerStatus.statusNeverDownloaded()));
 
 		long startTime = System.currentTimeMillis();
 		mInterface.download(AUTHORITY_URI, null, false);
@@ -82,19 +86,20 @@ public class DownloadServiceTest extends ServiceTestCase<DownloadService> {
 		assertFalse(
 				"Called without force, but arguments does appear to be good",
 				mService.mLastCalledWithForce);
-		assertThatWithTimeout(new ValueRunnable<Long>() {
+		assertThatWithTimeout(new ValueRunnable<AUSyncerStatus>() {
 
 			@Override
-			public Long getValue() throws Exception {
-				return mInterface.getLastSuccess(AUTHORITY_URI);
+			public AUSyncerStatus getValue() throws Exception {
+				return mInterface.getLastStatus(AUTHORITY_URI);
 			}
-		}, greaterThan(0L), 1000);
+		}, equalTo(AUSyncerStatus.statusSuccess()), 1000);
 		long nowTime = System.currentTimeMillis();
+		AUSyncerStatus lastStatus = mInterface.getLastStatus(AUTHORITY_URI);
 		assertThat("Last success should be equalt or greater than start time",
-				mInterface.getLastSuccess(AUTHORITY_URI),
+				lastStatus.getStatusTimeMs(),
 				greaterThanOrEqualTo(startTime));
 		assertThat("Last success should be lower or grater that actual time",
-				mInterface.getLastSuccess(AUTHORITY_URI),
+				lastStatus.getStatusTimeMs(),
 				lessThanOrEqualTo(nowTime));
 
 		Bundle bundle = new Bundle();
@@ -116,8 +121,9 @@ public class DownloadServiceTest extends ServiceTestCase<DownloadService> {
 	public void testProgressInformation() throws Exception {
 		assertFalse("In progress should be false at start point",
 				mInterface.inProgress(AUTHORITY_URI));
-		assertThat("At start point last success should be null",
-				mInterface.getLastSuccess(AUTHORITY_URI), equalTo(-1L));
+		assertThat("should be not downloaded set at start Point",
+				mInterface.getLastStatus(AUTHORITY_URI),
+				equalTo(AUSyncerStatus.statusNeverDownloaded()));
 
 		mInterface.download(AUTHORITY_URI, null, false);
 		assertTrue("While downloading in progress should be true",
@@ -155,9 +161,15 @@ public class DownloadServiceTest extends ServiceTestCase<DownloadService> {
 				equalTo(2));
 	}
 	
-	public void testNetworkUriAvailability() throws RemoteException {
+	public void testNetworkUriAvailability() throws Exception {
 		mService.requireConnectionCalls = 0;
 		mInterface.download(AUTHORITY_URI, null, true);
-		assertThat(mService.requireConnectionCalls,is(equalTo(1)));
+		assertThatWithTimeout(new ValueRunnable<Integer>() {
+
+			@Override
+			public Integer getValue() throws Exception {
+				return mService.requireConnectionCalls;
+			}
+		}, is(equalTo(1)), 500);
 	}
 }

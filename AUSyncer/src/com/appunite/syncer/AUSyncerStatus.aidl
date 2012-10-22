@@ -16,12 +16,4 @@
 
 package com.appunite.syncer;
 
-import android.net.Uri;
-import android.os.Bundle;
-import com.appunite.syncer.AUSyncerStatus;
-
-interface IDownloadService {
-	AUSyncerStatus getLastStatus(in Uri uri);
-    boolean inProgress(in Uri uri);
-    void download(in Uri uri, in Bundle bundle, in boolean withForce);
-}
+parcelable AUSyncerStatus;

@@ -50,25 +50,12 @@ public class Downloader {
 		mParser = new Parser(mParserResult);
 	}
 
-	public boolean download(String url) {
-		try {
-			JSONObject data = downloadWithException(url);
-			mParser.parse(data);
-			mParserResult.apply();
-			return true;
-		} catch (ClientProtocolException e) {
-			return false;
-		} catch (IOException e) {
-			return false;
-		} catch (URISyntaxException e) {
-			return false;
-		} catch (JSONException e) {
-			return false;
-		} catch (RemoteException e) {
-			return false;
-		} catch (OperationApplicationException e) {
-			return false;
-		}
+	public void download(String url) throws JSONException, RemoteException,
+			OperationApplicationException, ClientProtocolException,
+			IOException, URISyntaxException {
+		JSONObject data = downloadWithException(url);
+		mParser.parse(data);
+		mParserResult.apply();
 	}
 
 	private JSONObject downloadWithException(String url) throws ClientProtocolException,

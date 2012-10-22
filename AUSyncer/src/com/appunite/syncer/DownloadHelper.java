@@ -16,8 +16,6 @@
 
 package com.appunite.syncer;
 
-import java.util.Date;
-
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Service;
@@ -72,32 +70,12 @@ public class DownloadHelper implements ServiceConnection {
 	private boolean mLocalDataIsEmpty = true;
 
 	private DownloadHelperStatus mDownloadHelperStatus;
-
-	private Date getLastSuccess() {
-		if (mDownloadService == null)
-			return null;
+	
+	private AUSyncerStatus getLastStatus() {
 		try {
-			long lastSuccess = mDownloadService.getLastSuccess(mUri);
-			if (lastSuccess < 0)
-				return null;
-			return new Date(lastSuccess);
+			return mDownloadService.getLastStatus(mUri);
 		} catch (RemoteException e) {
-			reconnect();
-			return null;
-		}
-	}
-
-	private Date getLastError() {
-		if (mDownloadService == null)
-			return null;
-		try {
-			long lastError = mDownloadService.getLastError(mUri);
-			if (lastError < 0)
-				return null;
-			return new Date(lastError);
-		} catch (RemoteException e) {
-			reconnect();
-			return null;
+			return AUSyncerStatus.statusNeverDownloaded();
 		}
 	}
 
@@ -310,37 +288,41 @@ public class DownloadHelper implements ServiceConnection {
 	}
 
 	protected void setProgressStatus() {
-		Date lastError;
 		boolean screenProgress;
 		boolean progressIndicator;
 		boolean screenVisible;
 		boolean screenEmpty;
 
-		boolean isBound = mDownloadService != null;
+		boolean isBound = mDownloadService != null; 
+		AUSyncerStatus lastStatus = null;
+
+		mMyHandler.removeMessages(MyHandler.MSG_REFRESH_PROGRESS);
+		
 		if (!isBound || !mHaveLocalData) {
+			lastStatus = AUSyncerStatus.statusNeverDownloaded();
 			progressIndicator = true;
 			screenProgress = true;
 			screenVisible = false;
 			screenEmpty = false;
-			lastError = null;
 		} else {
 			boolean isInProgress = isInProgress();
-
-			boolean hasDownloadedData = getLastSuccess() != null;
-
+			
+			lastStatus = getLastStatus();
+			
+			boolean hasDownloadedData = !lastStatus.isNeverDownloaded();
+			
 			progressIndicator = isInProgress;
 			screenProgress = !hasDownloadedData && isInProgress;
 			screenVisible = !mLocalDataIsEmpty;
 			screenEmpty = hasDownloadedData && mLocalDataIsEmpty;
-			lastError = getLastError();
+			if (lastStatus.isError()) {
+				mMyHandler.sendEmptyMessageDelayed(MyHandler.MSG_REFRESH_PROGRESS,
+						1000);
+			}
 		}
-		mMyHandler.removeMessages(MyHandler.MSG_REFRESH_PROGRESS);
-		if (lastError != null) {
-			mMyHandler.sendEmptyMessageDelayed(MyHandler.MSG_REFRESH_PROGRESS,
-					1000);
-		}
-		mDownloadHelperStatus.reportStatus(screenVisible, screenEmpty,
-				screenProgress, progressIndicator, lastError);
+		
+
+		mDownloadHelperStatus.onReportStatus(screenVisible, screenEmpty, screenProgress, progressIndicator, lastStatus);
 	}
 	
 }
