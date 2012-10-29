@@ -106,8 +106,13 @@ import android.os.RemoteException;
 public abstract class AbsDownloadService extends Service {
 
 	public static final int DEFAULT_FORCE_UPDATE_TIME_MS = 10000;
-	public static final String ON_PROGRESS_CHANGE_EXTRA_URI = "uri";
+	public static final String ON_PROGRESS_CHANGE_EXTRA_URI = "extra_uri";
+	public static final String ON_PROGRESS_CHANGEEXTRA_IS_STATUS = "extra_status";
 	public static final String ON_PROGRESS_CHANGE = "com.appunite.syncer.ON_PROGRESS_CHANGE";
+	
+	public static final String EXTRA_URI = "extra_uri";
+	public static final String EXTRA_BUNDLE = "extra_bundle";
+	public static final String EXTRA_WITH_FORCE = "extra_with_force";
 
 	private static class MyThread extends Thread {
 		private final AbsDownloadService mDownloadService;
@@ -128,6 +133,7 @@ public abstract class AbsDownloadService extends Service {
 		public Uri uri;
 		public Bundle bundle;
 		public boolean withForce;
+		public int startId;
 
 	}
 
@@ -153,7 +159,7 @@ public abstract class AbsDownloadService extends Service {
 
 	};
 	
-	protected AUSyncerStatus getLastStatus(Uri uri) throws RemoteException {
+	protected AUSyncerStatus getLastStatus(Uri uri) {
 		return mDownloadSharedPreference.getLastStatus(uri);
 	}
 
@@ -189,8 +195,11 @@ public abstract class AbsDownloadService extends Service {
 		return true;
 	}
 
-	protected void download(Uri uri, Bundle bundle, boolean withForce)
-			throws RemoteException {
+	protected void download(Uri uri, Bundle bundle, boolean withForce) {
+		download(uri, bundle, withForce, -1);
+	}
+	
+	protected void download(Uri uri, Bundle bundle, boolean withForce, int startId) {
 		if (withForce != true) {
 			AUSyncerStatus lastStatus = getLastStatus(uri);
 			if (lastStatus.isSuccess()) {
@@ -205,6 +214,7 @@ public abstract class AbsDownloadService extends Service {
 		task.uri = uri;
 		task.bundle = bundle;
 		task.withForce = withForce;
+		task.startId = startId;
 		synchronized (this) {
 			mQueue.add(task);
 			this.notifyAll();
@@ -341,18 +351,25 @@ public abstract class AbsDownloadService extends Service {
 					}
 
 				} finally {
-					if (timeout >= 0 && mWakeLock.isHeld())
+					if (timeout >= 0 && mWakeLock.isHeld()) {
 						mWakeLock.release();
+					}
 				}
 	
 				setLastStatus(task.uri, status);
-				synchronized (this) {
-					mQueue.remove(0);
-				}
 				Intent broadcastIntent = new Intent(ON_PROGRESS_CHANGE);
 				broadcastIntent
 						.putExtra(ON_PROGRESS_CHANGE_EXTRA_URI, task.uri);
+				broadcastIntent.putExtra(ON_PROGRESS_CHANGEEXTRA_IS_STATUS,
+						status);
 				this.sendBroadcast(broadcastIntent);
+				
+				synchronized (this) {
+					mQueue.remove(0);
+				}
+				if (task.startId != -1) {
+					stopSelf(task.startId);
+				}
 			} catch (InterruptedException e) {
 			}
 		}
@@ -368,6 +385,15 @@ public abstract class AbsDownloadService extends Service {
 			this.notifyAll();
 		}
 		return true;
+	}
+	
+	@Override
+	public int onStartCommand(Intent intent, int flags, int startId) {
+		Uri uri = intent.getParcelableExtra(EXTRA_URI);
+		Bundle bundle = intent.getBundleExtra(EXTRA_BUNDLE);
+		boolean withForce = intent.getBooleanExtra(EXTRA_WITH_FORCE, false);
+		download(uri, bundle, withForce, startId);
+		return START_STICKY;
 	}
 
 	@Override
@@ -395,6 +421,7 @@ public abstract class AbsDownloadService extends Service {
 	public void onDestroy() {
 		synchronized (this) {
 			mClose = true;
+			this.notifyAll();
 		}
 		super.onDestroy();
 	}

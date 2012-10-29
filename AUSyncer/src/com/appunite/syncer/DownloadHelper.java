@@ -65,6 +65,51 @@ import android.os.RemoteException;
  */
 @SuppressLint("HandlerLeak")
 public class DownloadHelper implements ServiceConnection {
+	
+	public static abstract class DownloadReceiver extends BroadcastReceiver {
+		
+		@Override
+		public void onReceive(Context context, Intent intent) {
+			if (!AbsDownloadService.ON_PROGRESS_CHANGE.equals(intent
+					.getAction())) {
+				throw new RuntimeException();
+			}
+			Uri uri = intent
+					.getParcelableExtra(AbsDownloadService.ON_PROGRESS_CHANGE_EXTRA_URI);
+			if (uri == null) {
+				throw new RuntimeException();
+			}
+			AUSyncerStatus status = intent
+					.getParcelableExtra(AbsDownloadService.ON_PROGRESS_CHANGEEXTRA_IS_STATUS);
+			onReceive(uri, status);
+		}
+
+		/**
+		 * Check if {@link Uri} match second {@link Uri}
+		 * 
+		 * @param baseUri
+		 *            source uri
+		 * @param uri
+		 *            {@link Uri} to check if match
+		 * @return true if {@link Uri}s matches
+		 */
+		public boolean ifUriMatch(Uri baseUri, Uri uri) {
+			if (baseUri == null) {
+				throw new IllegalArgumentException("baseUri could not be null");
+			}
+			return baseUri.equals(uri);
+		}
+
+		/**
+		 * Called when task was executed
+		 * 
+		 * @param uri
+		 *            uri that was executed
+		 * @param status
+		 *            status of execution
+		 */
+		protected abstract void onReceive(Uri uri, AUSyncerStatus status);
+	}
 
 	private boolean mHaveLocalData = false;
 	private boolean mLocalDataIsEmpty = true;
@@ -97,14 +142,11 @@ public class DownloadHelper implements ServiceConnection {
 	private Bundle mBundle = null;
 	private boolean mWithForce;
 	private final String mServiceActionName;
-	private BroadcastReceiver mReceiver = new BroadcastReceiver() {
-
+	private DownloadReceiver mReceiver = new DownloadReceiver() {
+		
 		@Override
-		public void onReceive(Context context, Intent intent) {
-			Parcelable uriParcelable = intent
-					.getParcelableExtra(AbsDownloadService.ON_PROGRESS_CHANGE_EXTRA_URI);
-			Uri uri = (Uri) uriParcelable;
-			if (mUri != null && mUri.equals(uri)) {
+		protected void onReceive(Uri uri, AUSyncerStatus status) {
+			if (ifUriMatch(mUri, uri)) {
 				setProgressStatus();
 			}
 		}
@@ -154,16 +196,70 @@ public class DownloadHelper implements ServiceConnection {
 	}
 
 	/**
+	 * Request download user data asynchrously.
+	 * 
+	 * Request download data asynchronously
+	 * 
+	 * @param context
+	 *            context of application
+	 * @param serviceActionName
+	 *            action name that will start your implementation of
+	 *            {@link AbsDownloadService}, i.e.
+	 *            <code>DownloadService.ACTION_SYNC</code>
+	 * @param uri
+	 *            uri that you want to invoke. i.e. <code>Uri.withAppendedPath(
+	 *            DownloadService.AUTHORITY_URI, DownloadService.CONTENT_PATH)</code>
+	 * @param bundle
+	 *            data that should be delivered to subclass of
+	 *            {@link AbsDownloadService}.
+	 * @param withForce
+	 *            should downloading be performed even if the refresh time has
+	 *            not expired
+	 */
+	public static void startAsyncDownload(Context context, String serviceActionName,
+			Uri uri, Bundle bundle, boolean withForce) {
+		Intent service = new Intent(serviceActionName);
+		service.putExtra(AbsDownloadService.EXTRA_URI, (Parcelable)uri);
+		service.putExtra(AbsDownloadService.EXTRA_BUNDLE, bundle);
+		service.putExtra(AbsDownloadService.EXTRA_WITH_FORCE, withForce);
+		context.startService(service);
+	}
+
+	/**
+	 * Receive observer for getting completition information from service
+	 * 
+	 * @param context
+	 *            application context
+	 * @param downloadReceiver
+	 *            completition receiver
+	 */
+	public static void registerDownloadReceiver(Context context,
+			DownloadReceiver downloadReceiver) {
+		context.registerReceiver(downloadReceiver, new IntentFilter(
+				AbsDownloadService.ON_PROGRESS_CHANGE));
+	}
+
+	/**
+	 * Unregister observer
+	 * 
+	 * @param context
+	 *            application context
+	 * @param downloadReceiver
+	 *            completition receiver
+	 */
+	public static void unregisterDownloadReceiver(Context context,
+			DownloadReceiver downloadReceiver) {
+		context.unregisterReceiver(downloadReceiver);
+	}
+
+	/**
 	 * Initialize DownloadHelper. Should be called in {@link Activity#onResume}.
 	 */
 	public void onActivityResume() {
 		assert (mIsActive == false);
 		mIsActive = true;
-
-		IntentFilter intentFilter = new IntentFilter();
-		intentFilter.addAction(AbsDownloadService.ON_PROGRESS_CHANGE);
-		mContext.registerReceiver(mReceiver, intentFilter);
-
+		
+		DownloadHelper.registerDownloadReceiver(mContext, mReceiver);
 		reconnect();
 	}
 
@@ -173,7 +269,7 @@ public class DownloadHelper implements ServiceConnection {
 	public void onActivityPause() {
 		assert (mIsActive == true);
 		mIsActive = false;
-		mContext.unregisterReceiver(mReceiver);
+		DownloadHelper.unregisterDownloadReceiver(mContext, mReceiver);
 		mContext.unbindService(this);
 		mMyHandler.removeMessages(MyHandler.MSG_REFRESH_PROGRESS);
 	}
@@ -229,7 +325,7 @@ public class DownloadHelper implements ServiceConnection {
 		boolean dataIsEmpty = cursor == null || cursor.getCount() == 0;
 		this.updateLocalData(haveLocalData, dataIsEmpty);
 	}
-
+	
 	/**
 	 * Request download user data. Usually should be invoked
 	 * <code>DownloadHelper.startDownloading(null, false)</code> in
