@@ -408,7 +408,7 @@ public class DownloadHelper implements ServiceConnection {
 			boolean hasDownloadedData = !lastStatus.isNeverDownloaded();
 			
 			progressIndicator = isInProgress;
-			screenProgress = !hasDownloadedData && isInProgress;
+			screenProgress = !hasDownloadedData && isInProgress && mLocalDataIsEmpty;
 			screenVisible = !mLocalDataIsEmpty;
 			screenEmpty = hasDownloadedData && mLocalDataIsEmpty;
 			if (lastStatus.isError()) {
