@@ -196,6 +196,9 @@ public class AUSyncerStatus implements Parcelable {
 	}
 	
 	public String getStringOrNull() {
+		if (messageObject == null) {
+			return null;
+		}
 		try {
 			return messageObject.getString(JSON_DEFAULT_ERROR);
 		} catch (JSONException e) {
@@ -204,6 +207,9 @@ public class AUSyncerStatus implements Parcelable {
 	}
 
 	public String getMsgObjectAsStringOrThrow() {
+		if (messageObject == null) {
+			throw new IllegalStateException("There is no message data");
+		}
 		try {
 			return messageObject.getString(JSON_DEFAULT_ERROR);
 		} catch (JSONException e) {
@@ -212,6 +218,9 @@ public class AUSyncerStatus implements Parcelable {
 	}
 	
 	public Collection<String> getMsgObjectAsStringArrayOrNull() {
+		if (messageObject == null) {
+			return null;
+		}
 		try {
 			List<String> ret = new ArrayList<String>();
 			JSONArray jsonArray = messageObject.getJSONArray(JSON_DEFAULT_ERRORS);
@@ -225,6 +234,9 @@ public class AUSyncerStatus implements Parcelable {
 	}
 
 	public Collection<String> getMsgObjectAsStringArrayOrThrow() {
+		if (messageObject == null) {
+			throw new IllegalStateException("There is no message data");
+		}
 		try {
 			List<String> ret = new ArrayList<String>();
 			JSONArray jsonArray = messageObject.getJSONArray(JSON_DEFAULT_ERRORS);
@@ -268,7 +280,6 @@ public class AUSyncerStatus implements Parcelable {
 
 	@Override
 	public String toString() {
-
 		return new StringBuilder()
 				.append("Message: ")
 				.append(getMessageTypeString(message))
