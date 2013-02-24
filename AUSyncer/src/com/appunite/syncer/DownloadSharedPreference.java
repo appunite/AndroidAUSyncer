@@ -32,6 +32,7 @@ public class DownloadSharedPreference {
 	private static final String PREFIX_LAST_MESSAGE_OBJ = "_last_error_obj";
 	private static final String PREFIX_LAST_MESSAGE = "_last_error_message";
 	private static final String PREFIX_LAST_TIME = "_last_error_time";
+	private static final String PREFIX_LAST_DOWNLOADED = "_last_downloaded";
 	private static final String DOWNLOAD_PREFS_NAME = "download_preferences";
 	
 	private static final String TAG = DownloadSharedPreference.class.getCanonicalName();
@@ -51,6 +52,7 @@ public class DownloadSharedPreference {
 		String preferenceKeyMessage = uriToPreferenceKey(uri) + PREFIX_LAST_MESSAGE;
 		String preferenceKeyTime = uriToPreferenceKey(uri) + PREFIX_LAST_TIME;
 		String preferenceKeyMessageObject = uriToPreferenceKey(uri) + PREFIX_LAST_MESSAGE_OBJ;
+		String preferenceKeyLastDownloaded = uriToPreferenceKey(uri) + PREFIX_LAST_DOWNLOADED;
 		
 		if (!mSharedPreferences.contains(preferenceKeyMessage)) {
 			return AUSyncerStatus.statusNeverDownloaded();
@@ -58,6 +60,7 @@ public class DownloadSharedPreference {
 		int message = mSharedPreferences.getInt(preferenceKeyMessage, -1);
 		long statusTimeMs = mSharedPreferences.getLong(preferenceKeyTime, -1);
 		String messageObjectStr = mSharedPreferences.getString(preferenceKeyMessageObject, null);
+		long lastDownloaded = mSharedPreferences.getLong(preferenceKeyLastDownloaded, -1L);
 		JSONObject messageObject = null;
 		if (messageObjectStr != null) {
 			try {
@@ -69,7 +72,8 @@ public class DownloadSharedPreference {
 				return AUSyncerStatus.statusNeverDownloaded();
 			}
 		}
-		return new AUSyncerStatus(message, statusTimeMs, messageObject);
+		return new AUSyncerStatus(message, statusTimeMs, lastDownloaded,
+				messageObject);
 	}
 
 	private String uriToPreferenceKey(Uri uri) {
@@ -80,10 +84,15 @@ public class DownloadSharedPreference {
 		String preferenceKeyMessage = uriToPreferenceKey(uri) + PREFIX_LAST_MESSAGE;
 		String preferenceKeyTime = uriToPreferenceKey(uri) + PREFIX_LAST_TIME;
 		String preferenceKeyMessageObject = uriToPreferenceKey(uri) + PREFIX_LAST_MESSAGE_OBJ;
+		String preferenceKeyLastDownloaded = uriToPreferenceKey(uri) + PREFIX_LAST_DOWNLOADED;
 		
 		Editor editor = mSharedPreferences.edit();
 		editor.putInt(preferenceKeyMessage, status.getMessage());
 		editor.putLong(preferenceKeyTime, status.getStatusTimeMs());
+		long lastDownloaded = status.getLastDownloaded();
+		if (lastDownloaded != -1L) {
+			editor.putLong(preferenceKeyLastDownloaded, lastDownloaded);
+		}
 		JSONObject object = status.getMsgObjectOrNull();
 		if (object == null) {
 			editor.remove(preferenceKeyMessageObject);

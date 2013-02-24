@@ -202,7 +202,7 @@ public abstract class AbsDownloadService extends Service {
 	protected void download(Uri uri, Bundle bundle, boolean withForce, int startId) {
 		if (withForce != true) {
 			AUSyncerStatus lastStatus = getLastStatus(uri);
-			if (lastStatus.isSuccess()) {
+			if (lastStatus.isSuccess() && lastStatus.getLastDownloaded() != -1L) {
 				long currentTimeMillis = System.currentTimeMillis();
 				if (!forceDownload(uri, lastStatus.getStatusTimeMs(),
 						currentTimeMillis)) {

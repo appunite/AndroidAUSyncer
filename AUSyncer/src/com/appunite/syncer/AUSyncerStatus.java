@@ -34,15 +34,15 @@ public class AUSyncerStatus implements Parcelable {
 	private static final String JSON_DEFAULT_ERRORS = "ERRORS";
 
 	private static final int SUCCESS = 0;
-	private static final int NEVER_DOWNLOADED = 1;
 
 	private static final int NO_INTERNET_CONNECTION = 2;
 	private static final int INTERNAL_ISSUE = 3;
 	private static final int CUSTOM_ERROR = 5;
 
-	private final int message;
-	private final long statusTimeMs;
-	private final JSONObject messageObject;
+	private final int mMessage;
+	private final long mStatusTimeMs;
+	private final JSONObject mMessageObject;
+	private final long mLastDownloaded;
 
 	public static final Parcelable.Creator<AUSyncerStatus> CREATOR = new Parcelable.Creator<AUSyncerStatus>() {
 		public AUSyncerStatus createFromParcel(Parcel in) {
@@ -55,39 +55,47 @@ public class AUSyncerStatus implements Parcelable {
 	};
 
 	private AUSyncerStatus(int message, JSONObject msgObject) {
-		this.message = message;
-		this.statusTimeMs = System.currentTimeMillis();
-		this.messageObject = msgObject;
+		mMessage = message;
+		mStatusTimeMs = System.currentTimeMillis();
+		mMessageObject = msgObject;
+		if (message == SUCCESS) {
+			mLastDownloaded = mStatusTimeMs;
+		} else {
+			mLastDownloaded = -1L;
+		}
 	}
 
-	AUSyncerStatus(int message, long statusTimeMs, JSONObject messageObject) {
-		this.message = message;
-		this.statusTimeMs = statusTimeMs;
-		this.messageObject = messageObject;
+	AUSyncerStatus(int message, long statusTimeMs, long lastDownloaded, JSONObject messageObject) {
+		mMessage = message;
+		mStatusTimeMs = statusTimeMs;
+		mMessageObject = messageObject;
+		mLastDownloaded = lastDownloaded;
 	}
 
 	private AUSyncerStatus(Parcel in) {
-		this.message = in.readInt();
-		this.statusTimeMs = in.readLong();
+		mMessage = in.readInt();
+		mStatusTimeMs = in.readLong();
 		String messageObjectStr = in.readString();
 
 		if (messageObjectStr == null) {
-			messageObject = null;
+			mMessageObject = null;
 		} else {
 			try {
-				messageObject = new JSONObject(messageObjectStr);
+				mMessageObject = new JSONObject(messageObjectStr);
 			} catch (JSONException e) {
 				throw new RuntimeException(e);
 			}
 		}
+		mLastDownloaded = in.readLong();
 	}
 
 	@Override
 	public void writeToParcel(Parcel dest, int flags) {
-		dest.writeInt(message);
-		dest.writeLong(statusTimeMs);
-		dest.writeString(messageObject == null ? null : messageObject
+		dest.writeInt(mMessage);
+		dest.writeLong(mStatusTimeMs);
+		dest.writeString(mMessageObject == null ? null : mMessageObject
 				.toString());
+		dest.writeLong(mLastDownloaded);
 	}
 
 	@Override
@@ -99,8 +107,9 @@ public class AUSyncerStatus implements Parcelable {
 		return new AUSyncerStatus(SUCCESS, null);
 	}
 
-	public static AUSyncerStatus statusNeverDownloaded() {
-		return new AUSyncerStatus(NEVER_DOWNLOADED, null);
+	static AUSyncerStatus statusNeverDownloaded() {
+		return new AUSyncerStatus(SUCCESS, System.currentTimeMillis(), -1L,
+				null);
 	}
 
 	public static AUSyncerStatus statusNoInternetConnection() {
@@ -160,70 +169,70 @@ public class AUSyncerStatus implements Parcelable {
 	}
 
 	public boolean isSuccess() {
-		return message == SUCCESS;
+		return mMessage == SUCCESS;
 	}
 
 	public boolean isNeverDownloaded() {
-		return message == NEVER_DOWNLOADED;
+		return mLastDownloaded == -1L;
 	}
 
 	public boolean isNoInternetConnection() {
-		return message == NO_INTERNET_CONNECTION;
+		return mMessage == NO_INTERNET_CONNECTION;
 	}
 
 	public boolean isInternalIssue() {
-		return message == INTERNAL_ISSUE;
+		return mMessage == INTERNAL_ISSUE;
 	}
 
 	public boolean isCustomIssue() {
-		return message == CUSTOM_ERROR;
+		return mMessage == CUSTOM_ERROR;
 	}
 
 	public boolean isError() {
-		return message != SUCCESS && message != NEVER_DOWNLOADED;
+		return mMessage != SUCCESS;
 	}
 
 	int getMessage() {
-		return message;
+		return mMessage;
 	}
 
 	public long getStatusTimeMs() {
-		return statusTimeMs;
+		return mStatusTimeMs;
 	}
 
 	public JSONObject getMsgObjectOrNull() {
-		return messageObject;
+		return mMessageObject;
 	}
 	
 	public String getStringOrNull() {
-		if (messageObject == null) {
+		if (mMessageObject == null) {
 			return null;
 		}
 		try {
-			return messageObject.getString(JSON_DEFAULT_ERROR);
+			return mMessageObject.getString(JSON_DEFAULT_ERROR);
 		} catch (JSONException e) {
 			throw null;
 		}
 	}
 
 	public String getMsgObjectAsStringOrThrow() {
-		if (messageObject == null) {
+		if (mMessageObject == null) {
 			throw new IllegalStateException("There is no message data");
 		}
 		try {
-			return messageObject.getString(JSON_DEFAULT_ERROR);
+			return mMessageObject.getString(JSON_DEFAULT_ERROR);
 		} catch (JSONException e) {
 			throw new IllegalStateException(e);
 		}
 	}
 	
 	public Collection<String> getMsgObjectAsStringArrayOrNull() {
-		if (messageObject == null) {
+		if (mMessageObject == null) {
 			return null;
 		}
 		try {
 			List<String> ret = new ArrayList<String>();
-			JSONArray jsonArray = messageObject.getJSONArray(JSON_DEFAULT_ERRORS);
+			JSONArray jsonArray = mMessageObject.getJSONArray(JSON_DEFAULT_ERRORS);
 			for (int i = 0; i < jsonArray.length(); i++) {
 				ret.add(jsonArray.getString(i));
 			}
@@ -234,12 +243,12 @@ public class AUSyncerStatus implements Parcelable {
 	}
 
 	public Collection<String> getMsgObjectAsStringArrayOrThrow() {
-		if (messageObject == null) {
+		if (mMessageObject == null) {
 			throw new IllegalStateException("There is no message data");
 		}
 		try {
 			List<String> ret = new ArrayList<String>();
-			JSONArray jsonArray = messageObject.getJSONArray(JSON_DEFAULT_ERRORS);
+			JSONArray jsonArray = mMessageObject.getJSONArray(JSON_DEFAULT_ERRORS);
 			for (int i = 0; i < jsonArray.length(); i++) {
 				ret.add(jsonArray.getString(i));
 			}
@@ -247,6 +256,10 @@ public class AUSyncerStatus implements Parcelable {
 		} catch (JSONException e) {
 			throw new IllegalStateException(e);
 		}
+	}
+
+	public long getLastDownloaded() {
+		return mLastDownloaded;
 	}
 	
 	@Override
@@ -258,15 +271,13 @@ public class AUSyncerStatus implements Parcelable {
 			return false;
 		}
 		AUSyncerStatus oo = (AUSyncerStatus) o;
-		return this.message == oo.message;
+		return this.mMessage == oo.mMessage;
 	}
 	
 	private static String getMessageTypeString(int message) {
 		switch (message) {
 		case SUCCESS:
 			return "success";
-		case NEVER_DOWNLOADED:
-			return "never downloaded";
 		case NO_INTERNET_CONNECTION:
 			return "no_internet_connection";
 		case INTERNAL_ISSUE:
@@ -282,11 +293,13 @@ public class AUSyncerStatus implements Parcelable {
 	public String toString() {
 		return new StringBuilder()
 				.append("Message: ")
-				.append(getMessageTypeString(message))
+				.append(getMessageTypeString(mMessage))
 				.append(", Date: ")
-				.append(new Date(statusTimeMs))
+				.append(new Date(mStatusTimeMs))
 				.append(", MessageObject: ")
-				.append(messageObject == null ? null : messageObject.toString())
+				.append(mMessageObject == null ? null : mMessageObject.toString())
+				.append(", LastDownloaded: ")
+				.append(mLastDownloaded)
 				.toString();
 	}
 	
