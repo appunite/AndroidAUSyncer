@@ -389,7 +389,13 @@ public abstract class AbsDownloadService extends Service {
 	
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
+		if (intent == null) {
+			return START_STICKY;
+		}
 		Uri uri = intent.getParcelableExtra(EXTRA_URI);
+		if (uri == null) {
+			return START_STICKY;
+		}
 		Bundle bundle = intent.getBundleExtra(EXTRA_BUNDLE);
 		boolean withForce = intent.getBooleanExtra(EXTRA_WITH_FORCE, false);
 		download(uri, bundle, withForce, startId);
