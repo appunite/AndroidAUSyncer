@@ -352,7 +352,14 @@ public abstract class AbsDownloadService extends Service {
 
 				} finally {
 					if (timeout >= 0 && mWakeLock.isHeld()) {
-						mWakeLock.release();
+						try {
+							mWakeLock.release();
+						} catch (Throwable e) {
+							// No one knows why runtime exception is thrown when
+							// lock is released after timeout - this can occurs
+							// randomly. And this is not an error. Just ignore
+							// this situation.
+						}
 					}
 				}
 	
@@ -408,6 +415,7 @@ public abstract class AbsDownloadService extends Service {
 		PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
 		mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
 				"Downloading data");
+		mWakeLock.setReferenceCounted(false);
 
 		mDownloadSharedPreference = new DownloadSharedPreference(this);
 		mClose = false;
