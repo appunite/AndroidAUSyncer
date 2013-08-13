@@ -76,17 +76,17 @@ public class AUSyncerStatus implements Parcelable {
 	private AUSyncerStatus(Parcel in) {
 		mMessage = in.readInt();
 		mStatusTimeMs = in.readLong();
-		String messageObjectStr = in.readString();
-
-		if (messageObjectStr == null) {
-			mMessageObject = null;
-		} else {
-			try {
-				mMessageObject = new JSONObject(messageObjectStr);
-			} catch (JSONException e) {
-				throw new RuntimeException(e);
-			}
-		}
+        final boolean hasMessageObject = in.readByte() != 0;
+        if (hasMessageObject) {
+            String messageObjectStr = in.readString();
+            try {
+                mMessageObject = new JSONObject(messageObjectStr);
+            } catch (JSONException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            mMessageObject = null;
+        }
 		mLastDownloaded = in.readLong();
 	}
 
@@ -94,8 +94,11 @@ public class AUSyncerStatus implements Parcelable {
 	public void writeToParcel(Parcel dest, int flags) {
 		dest.writeInt(mMessage);
 		dest.writeLong(mStatusTimeMs);
-		dest.writeString(mMessageObject == null ? null : mMessageObject
-				.toString());
+        final boolean hasMessageObject = mMessageObject != null;
+        dest.writeByte(hasMessageObject ? (byte)1 : (byte)0);
+        if (hasMessageObject) {
+            dest.writeString(mMessageObject.toString());
+        }
 		dest.writeLong(mLastDownloaded);
 	}
 

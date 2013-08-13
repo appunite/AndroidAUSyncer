@@ -15,7 +15,7 @@ repositories {
 
 dependencies {
     compile project(":AUSyncer")
-    //compile "com.appunite:ausyncer:1.4"
+    //compile "com.appunite:ausyncer:1.5"
 }
 
 android {
