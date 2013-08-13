@@ -33,19 +33,16 @@ public class DownloadSharedPreference {
 	private static final String PREFIX_LAST_MESSAGE = "_last_error_message";
 	private static final String PREFIX_LAST_TIME = "_last_error_time";
 	private static final String PREFIX_LAST_DOWNLOADED = "_last_downloaded";
-	private static final String DOWNLOAD_PREFS_NAME = "download_preferences";
+	private static final String DOWNLOAD_PREFERENCES_NAME = "download_preferences";
 	
 	private static final String TAG = DownloadSharedPreference.class.getCanonicalName();
 	
-	private Context mContext;
 	private SharedPreferences mSharedPreferences;
 
 	public DownloadSharedPreference(Context context) {
-		this.mContext = context;
 
-		mSharedPreferences = this.mContext.getSharedPreferences(
-				DOWNLOAD_PREFS_NAME, Context.MODE_PRIVATE
-						| Context.MODE_MULTI_PROCESS);
+		mSharedPreferences = context.getSharedPreferences(
+                DOWNLOAD_PREFERENCES_NAME, Context.MODE_MULTI_PROCESS);
 	}
 
 	public AUSyncerStatus getLastStatus(Uri uri) {
@@ -102,7 +99,8 @@ public class DownloadSharedPreference {
 		editor.commit();
 	}
 
-	public void clear() {
+	@SuppressWarnings("UnusedDeclaration")
+    public void clear() {
 		Editor editor = mSharedPreferences.edit();
 		editor.clear();
 		editor.commit();

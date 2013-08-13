@@ -28,6 +28,7 @@ import org.json.JSONObject;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+@SuppressWarnings("UnusedDeclaration")
 public class AUSyncerStatus implements Parcelable {
 
 	private static final String JSON_DEFAULT_ERROR = "ERROR";
@@ -291,16 +292,10 @@ public class AUSyncerStatus implements Parcelable {
 
 	@Override
 	public String toString() {
-		return new StringBuilder()
-				.append("Message: ")
-				.append(getMessageTypeString(mMessage))
-				.append(", Date: ")
-				.append(new Date(mStatusTimeMs))
-				.append(", MessageObject: ")
-				.append(mMessageObject == null ? null : mMessageObject.toString())
-				.append(", LastDownloaded: ")
-				.append(mLastDownloaded)
-				.toString();
+		return "Message: " + getMessageTypeString(mMessage) +
+                ", Date: " + new Date(mStatusTimeMs) +
+                ", MessageObject: " + (mMessageObject == null ? null : mMessageObject.toString()) +
+                ", LastDownloaded: " + mLastDownloaded;
 	}
 	
 }

@@ -23,7 +23,9 @@ import java.util.Map;
 import android.content.ContentProvider;
 import android.content.ContentProviderOperation;
 import android.content.ContentProviderResult;
+import android.content.ContentResolver;
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.OperationApplicationException;
 import android.content.UriMatcher;
 import android.database.Cursor;
@@ -65,13 +67,16 @@ public class ExampleProvider extends ContentProvider {
 
 	private SQLiteDatabase db;
 
-	@Override
+	@SuppressWarnings("NullableProblems")
+    @Override
 	public ContentProviderResult[] applyBatch(
 			ArrayList<ContentProviderOperation> operations)
 			throws OperationApplicationException {
 		int ypCount = 0;
 		int opCount = 0;
 		db = mDatabase.getWritableDatabase();
+        assert db != null;
+
 		db.beginTransaction();
 		try {
 			final int numOperations = operations.size();
@@ -88,6 +93,7 @@ public class ExampleProvider extends ContentProvider {
 					opCount = 0;
 					if (db.yieldIfContendedSafely(SLEEP_AFTER_YIELD_DELAY)) {
 						db = mDatabase.getWritableDatabase();
+                        assert db != null;
 						ypCount++;
 					}
 				}
@@ -97,7 +103,8 @@ public class ExampleProvider extends ContentProvider {
 			db.setTransactionSuccessful();
 			return results;
 		} finally {
-			db.endTransaction();
+            assert db != null;
+            db.endTransaction();
 		}
 	}
 
@@ -126,17 +133,20 @@ public class ExampleProvider extends ContentProvider {
 		case EXAMPLE:
 			result = db.delete(ExampleContract.Example.DB_TABLE, selection,
 					selectionArgs);
-			getContext().getContentResolver().notifyChange(uri, null);
+            final Context context = getContext();
+            assert context != null;
+            final ContentResolver cr = context.getContentResolver();
+            cr.notifyChange(uri, null);
 			return result;
 		default:
 			throw new IllegalArgumentException();
 		}
 	}
 
-	private Uri updateThis(SQLiteDatabase db, Uri uri, String table,
-			String idFieldName, String guidFieldName, ContentValues values) {
+	private Uri updateThis(SQLiteDatabase db, String table,
+                           String idFieldName, String guidFieldName, ContentValues values) {
 
-		String whereClause = String.format("$s = ?", guidFieldName);
+		String whereClause = String.format("%s = ?", guidFieldName);
 		String id = null;
 		String guid = values.getAsString(guidFieldName);
 
@@ -171,10 +181,12 @@ public class ExampleProvider extends ContentProvider {
 		int uriType = sURIMatcher.match(uri);
 		switch (uriType) {
 		case EXAMPLE:
-			Uri itemUid = updateThis(db, uri, ExampleContract.Example.DB_TABLE,
+			Uri itemUid = updateThis(db, ExampleContract.Example.DB_TABLE,
 					ExampleContract.Example.EXAMPLE_ID,
 					ExampleContract.Example.GUID, values);
-			getContext().getContentResolver().notifyChange(itemUid, null);
+            final Context context = getContext();
+            assert  context != null;
+            context.getContentResolver().notifyChange(itemUid, null);
 			return itemUid;
 		default:
 			throw new IllegalArgumentException();
@@ -187,7 +199,7 @@ public class ExampleProvider extends ContentProvider {
 		SQLiteQueryBuilder queryBuilder = new SQLiteQueryBuilder();
 
 		StringBuilder tables = new StringBuilder();
-		Cursor cursor = null;
+		Cursor cursor;
 
 		int uriType = sURIMatcher.match(uri);
 
@@ -200,7 +212,10 @@ public class ExampleProvider extends ContentProvider {
 
 			cursor = queryBuilder.query(db, projection, selection,
 					selectionArgs, null, null, sortOrder);
-			cursor.setNotificationUri(getContext().getContentResolver(), uri);
+            assert cursor != null;
+            final Context context = getContext();
+            assert context != null;
+            cursor.setNotificationUri(context.getContentResolver(), uri);
 			return cursor;
 		default:
 			throw new IllegalArgumentException();
@@ -216,7 +231,9 @@ public class ExampleProvider extends ContentProvider {
 		case EXAMPLE:
 			result = db.update(ExampleContract.Example.DB_TABLE, values,
 					selection, selectionArgs);
-			getContext().getContentResolver().notifyChange(uri, null);
+            final Context context = getContext();
+            assert context != null;
+            context.getContentResolver().notifyChange(uri, null);
 			return result;
 		default:
 			throw new IllegalArgumentException();

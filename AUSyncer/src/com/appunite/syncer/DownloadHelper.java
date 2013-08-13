@@ -33,7 +33,6 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
-import android.os.Parcelable;
 import android.os.RemoteException;
 
 /**
@@ -63,6 +62,7 @@ import android.os.RemoteException;
  * @author Jacek Marchwicki <jacek.marchwicki@gmail.com>
  * 
  */
+@SuppressWarnings("UnusedDeclaration")
 @SuppressLint("HandlerLeak")
 public class DownloadHelper implements ServiceConnection {
 	
@@ -219,7 +219,7 @@ public class DownloadHelper implements ServiceConnection {
 	public static void startAsyncDownload(Context context, String serviceActionName,
 			Uri uri, Bundle bundle, boolean withForce) {
 		Intent service = new Intent(serviceActionName);
-		service.putExtra(AbsDownloadService.EXTRA_URI, (Parcelable)uri);
+		service.putExtra(AbsDownloadService.EXTRA_URI, uri);
 		service.putExtra(AbsDownloadService.EXTRA_BUNDLE, bundle);
 		service.putExtra(AbsDownloadService.EXTRA_WITH_FORCE, withForce);
 		context.startService(service);
@@ -256,7 +256,7 @@ public class DownloadHelper implements ServiceConnection {
 	 * Initialize DownloadHelper. Should be called in {@link Activity#onResume}.
 	 */
 	public void onActivityResume() {
-		assert (mIsActive == false);
+		assert !mIsActive;
 		mIsActive = true;
 		
 		DownloadHelper.registerDownloadReceiver(mContext, mReceiver);
@@ -267,7 +267,7 @@ public class DownloadHelper implements ServiceConnection {
 	 * Pause DownloadHelper. Should be called in {@link Activity#onPause}.
 	 */
 	public void onActivityPause() {
-		assert (mIsActive == true);
+		assert mIsActive;
 		mIsActive = false;
 		DownloadHelper.unregisterDownloadReceiver(mContext, mReceiver);
 		mContext.unbindService(this);
@@ -288,8 +288,9 @@ public class DownloadHelper implements ServiceConnection {
 	public void updateLocalData(boolean haveLocalData, boolean dataIsEmpty) {
 		mHaveLocalData = haveLocalData;
 		mLocalDataIsEmpty = dataIsEmpty;
-		if (mIsActive)
+		if (mIsActive) {
 			setProgressStatus();
+        }
 	}
 
 	/**
@@ -390,7 +391,7 @@ public class DownloadHelper implements ServiceConnection {
 		boolean screenEmpty;
 
 		boolean isBound = mDownloadService != null; 
-		AUSyncerStatus lastStatus = null;
+		AUSyncerStatus lastStatus;
 
 		mMyHandler.removeMessages(MyHandler.MSG_REFRESH_PROGRESS);
 		

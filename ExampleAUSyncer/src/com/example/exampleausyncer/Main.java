@@ -102,8 +102,10 @@ public class Main extends Activity implements OnClickListener,
 	public boolean onPrepareOptionsMenu(Menu menu) {
 		MenuItem menuProgress = menu.findItem(R.id.menu_progress);
 		MenuItem menuRefresh = menu.findItem(R.id.menu_refresh);
-		menuProgress.setVisible(mProgressIndicator);
-		menuRefresh.setVisible(!mProgressIndicator);
+        assert menuProgress != null;
+        assert menuRefresh != null;
+        menuProgress.setVisible(mProgressIndicator);
+        menuRefresh.setVisible(!mProgressIndicator);
 		return true;
 	}
 

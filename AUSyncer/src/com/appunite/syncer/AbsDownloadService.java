@@ -200,7 +200,7 @@ public abstract class AbsDownloadService extends Service {
 	}
 	
 	protected void download(Uri uri, Bundle bundle, boolean withForce, int startId) {
-		if (withForce != true) {
+		if (!withForce) {
 			AUSyncerStatus lastStatus = getLastStatus(uri);
 			if (lastStatus.isSuccess() && lastStatus.getLastDownloaded() != -1L) {
 				long currentTimeMillis = System.currentTimeMillis();
@@ -287,7 +287,7 @@ public abstract class AbsDownloadService extends Service {
 	 * @return Return <code>x < 0</code> to not acquire wake lock, or
 	 *         <code>0</code> to remove timeout, or <code>x > 0</code> to set
 	 *         timeout im ms
-	 * @see PowerManager#WakeLock
+	 * @see PowerManager.WakeLock
 	 */
 	protected long taskWakeLockTimeout(Uri uri, Bundle bundle) {
 		return -1;
@@ -377,7 +377,7 @@ public abstract class AbsDownloadService extends Service {
 				if (task.startId != -1) {
 					stopSelf(task.startId);
 				}
-			} catch (InterruptedException e) {
+			} catch (InterruptedException ignored) {
 			}
 		}
 	}
@@ -425,11 +425,8 @@ public abstract class AbsDownloadService extends Service {
 	private boolean hasInternetConnection() {
 		ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
 		NetworkInfo netInfo = cm.getActiveNetworkInfo();
-		if (netInfo != null && netInfo.isConnected())
-			return true;
-		
-		return false;
-	}
+        return netInfo != null && netInfo.isConnected();
+    }
 	
 	@Override
 	public void onDestroy() {

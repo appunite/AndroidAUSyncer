@@ -28,7 +28,6 @@ import java.util.List;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.utils.URLEncodedUtils;
@@ -51,14 +50,14 @@ public class Downloader {
 	}
 
 	public void download(String url) throws JSONException, RemoteException,
-			OperationApplicationException, ClientProtocolException,
+			OperationApplicationException,
 			IOException, URISyntaxException {
 		JSONObject data = downloadWithException(url);
 		mParser.parse(data);
 		mParserResult.apply();
 	}
 
-	private JSONObject downloadWithException(String url) throws ClientProtocolException,
+	private JSONObject downloadWithException(String url) throws
 			IOException, URISyntaxException, JSONException {
 		HttpClient client = new DefaultHttpClient();
 		HttpGet request = new HttpGet();
@@ -77,7 +76,7 @@ public class Downloader {
 
 		BufferedReader reader = new BufferedReader(new InputStreamReader(is));
 		StringBuilder stringBuilder = new StringBuilder();
-		String line = null;
+		String line;
 		while ((line = reader.readLine()) != null) {
 			stringBuilder.append(line);
 		}

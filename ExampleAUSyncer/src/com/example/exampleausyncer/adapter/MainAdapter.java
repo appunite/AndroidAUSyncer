@@ -55,6 +55,7 @@ public class MainAdapter extends CursorAdapter {
 	@Override
 	public View newView(Context context, Cursor cursor, ViewGroup parent) {
 		View view = mLayoutInflater.inflate(android.R.layout.simple_list_item_1, parent, false);
+        assert view != null;
 		
 		ViewHolder viewHolder = new ViewHolder();
 		view.setTag(viewHolder);
