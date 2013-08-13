@@ -342,18 +342,22 @@ public class DownloadHelper implements ServiceConnection {
 	 *            not expired
 	 */
 	public void startDownloading(Bundle bundle, boolean withForce) {
-		mBundle = bundle;
-		this.mWithForce = withForce;
-		this.mRequestDownload = true;
-		if (mDownloadService != null) {
-			try {
-				mDownloadService.download(mUri, mBundle, mWithForce);
-				mRequestDownload = false;
-			} catch (RemoteException e) {
-				reconnect();
-			}
-			setProgressStatus();
-		}
+        if (mIsActive) {
+            mBundle = bundle;
+            mWithForce = withForce;
+            mRequestDownload = true;
+            if (mDownloadService != null) {
+                try {
+                    mDownloadService.download(mUri, mBundle, mWithForce);
+                    mRequestDownload = false;
+                } catch (RemoteException e) {
+                    reconnect();
+                }
+                setProgressStatus();
+            }
+        } else {
+            startAsyncDownload(mContext, mServiceActionName, mUri, bundle, withForce);
+        }
 	}
 
 	private void reconnect() {
@@ -374,8 +378,9 @@ public class DownloadHelper implements ServiceConnection {
 	@Override
 	public void onServiceConnected(ComponentName name, IBinder service) {
 		mDownloadService = IDownloadService.Stub.asInterface(service);
-		if (mRequestDownload)
+		if (mRequestDownload) {
 			startDownloading(mBundle, mWithForce);
+        }
 		setProgressStatus();
 	}
 
