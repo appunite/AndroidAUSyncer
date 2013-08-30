@@ -40,12 +40,15 @@ public class DownloadSharedPreference {
 	private SharedPreferences mSharedPreferences;
 
 	public DownloadSharedPreference(Context context) {
+        if (context == null) throw new NullPointerException("context could not be null");
 
 		mSharedPreferences = context.getSharedPreferences(
                 DOWNLOAD_PREFERENCES_NAME, Context.MODE_MULTI_PROCESS);
 	}
 
 	public AUSyncerStatus getLastStatus(Uri uri) {
+        if (uri == null) throw new NullPointerException("uri could not be null");
+
 		String preferenceKeyMessage = uriToPreferenceKey(uri) + PREFIX_LAST_MESSAGE;
 		String preferenceKeyTime = uriToPreferenceKey(uri) + PREFIX_LAST_TIME;
 		String preferenceKeyMessageObject = uriToPreferenceKey(uri) + PREFIX_LAST_MESSAGE_OBJ;
@@ -74,10 +77,14 @@ public class DownloadSharedPreference {
 	}
 
 	private String uriToPreferenceKey(Uri uri) {
+        if (uri == null) throw new NullPointerException("uri could not be null");
 		return uri.toString();
 	}
 
 	public void setLastStatus(Uri uri, AUSyncerStatus status) {
+        if (uri == null) throw new NullPointerException("uri could not be null");
+        if (status == null) throw new NullPointerException("status could not be null");
+
 		String preferenceKeyMessage = uriToPreferenceKey(uri) + PREFIX_LAST_MESSAGE;
 		String preferenceKeyTime = uriToPreferenceKey(uri) + PREFIX_LAST_TIME;
 		String preferenceKeyMessageObject = uriToPreferenceKey(uri) + PREFIX_LAST_MESSAGE_OBJ;

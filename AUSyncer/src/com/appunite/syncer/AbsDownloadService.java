@@ -142,28 +142,39 @@ public abstract class AbsDownloadService extends Service {
 
 		@Override
 		public boolean inProgress(Uri uri) throws RemoteException {
+            if (uri == null) throw new NullPointerException("uri could not be null");
+
 			return AbsDownloadService.this.inProgress(uri);
 		}
 
 		@Override
 		public void download(Uri uri, Bundle bundle, boolean withForce)
 				throws RemoteException {
+            if (uri == null) throw new NullPointerException("Uri could not be null");
+
 			AbsDownloadService.this.download(uri, bundle, withForce);
 		}
 
 
 		@Override
 		public AUSyncerStatus getLastStatus(Uri uri) throws RemoteException {
+            if (uri == null) throw new NullPointerException("uri could not be null");
+
 			return AbsDownloadService.this.getLastStatus(uri);
 		}
 
 	};
 	
 	protected AUSyncerStatus getLastStatus(Uri uri) {
+        if (uri == null) throw new NullPointerException("uri could not be null");
+
 		return mDownloadSharedPreference.getLastStatus(uri);
 	}
 
 	protected void setLastStatus(Uri uri, AUSyncerStatus status) {
+        if (uri == null) throw new NullPointerException("uri could not be null");
+        if (status == null) throw new NullPointerException("status could not be null");
+
 		mDownloadSharedPreference.setLastStatus(uri, status);
 	}
 
@@ -200,6 +211,7 @@ public abstract class AbsDownloadService extends Service {
 	}
 	
 	protected void download(Uri uri, Bundle bundle, boolean withForce, int startId) {
+        if (uri == null) throw new NullPointerException("Uri could not be null");
 		if (!withForce) {
 			AUSyncerStatus lastStatus = getLastStatus(uri);
 			if (lastStatus.isSuccess() && lastStatus.getLastDownloaded() != -1L) {
@@ -294,6 +306,8 @@ public abstract class AbsDownloadService extends Service {
 	}
 
 	protected boolean inProgress(Uri uri) {
+        if (uri == null) throw new NullPointerException("uri could not be null");
+
 		synchronized (this) {
 			for (Task task : mQueue) {
 				if (task.uri.equals(uri))
@@ -349,7 +363,8 @@ public abstract class AbsDownloadService extends Service {
 					} else {
 						status = onHandleUri(task.uri, task.bundle, task.withForce);
 					}
-
+                    if (status == null) throw new NullPointerException(
+                            "you have to return not null status");
 				} finally {
 					if (timeout >= 0 && mWakeLock.isHeld()) {
 						try {

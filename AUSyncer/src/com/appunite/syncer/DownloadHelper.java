@@ -72,15 +72,15 @@ public class DownloadHelper implements ServiceConnection {
 		public void onReceive(Context context, Intent intent) {
 			if (!AbsDownloadService.ON_PROGRESS_CHANGE.equals(intent
 					.getAction())) {
-				throw new RuntimeException();
+				throw new IllegalStateException("We could capture only ON_PROGRESS_CHANGE");
 			}
 			Uri uri = intent
 					.getParcelableExtra(AbsDownloadService.ON_PROGRESS_CHANGE_EXTRA_URI);
-			if (uri == null) {
-				throw new RuntimeException();
-			}
+			if (uri == null) throw new NullPointerException("uri could not be null");
+
 			AUSyncerStatus status = intent
 					.getParcelableExtra(AbsDownloadService.ON_PROGRESS_CHANGEEXTRA_IS_STATUS);
+            if (status == null) throw new NullPointerException("status could not be null");
 			onReceive(uri, status);
 		}
 
@@ -188,6 +188,14 @@ public class DownloadHelper implements ServiceConnection {
 	 */
 	public DownloadHelper(Context context, String serviceActionName,
 			DownloadHelperStatus downloadHelperStatus, Uri uri) {
+
+        if (context == null) throw new NullPointerException("Context could not be null");
+        if (serviceActionName == null) throw new NullPointerException(
+                "serviceActionName could not be null");
+        if (downloadHelperStatus == null) throw new NullPointerException(
+                "downloadHelperStatus could not be null");
+        if (uri == null) throw new NullPointerException("uri could not be null");
+
 		this.mContext = context;
 		this.mServiceActionName = serviceActionName;
 		mDownloadHelperStatus = downloadHelperStatus;
@@ -218,6 +226,11 @@ public class DownloadHelper implements ServiceConnection {
 	 */
 	public static void startAsyncDownload(Context context, String serviceActionName,
 			Uri uri, Bundle bundle, boolean withForce) {
+        if (context == null) throw new NullPointerException("Context could not be null");
+        if (serviceActionName == null) throw new NullPointerException(
+                "serviceActionName could not be null");
+        if (uri == null) throw new NullPointerException("uri could not be null");
+
 		Intent service = new Intent(serviceActionName);
 		service.putExtra(AbsDownloadService.EXTRA_URI, uri);
 		service.putExtra(AbsDownloadService.EXTRA_BUNDLE, bundle);
@@ -235,6 +248,10 @@ public class DownloadHelper implements ServiceConnection {
 	 */
 	public static void registerDownloadReceiver(Context context,
 			DownloadReceiver downloadReceiver) {
+        if (context == null) throw new NullPointerException("Context could not be null");
+        if (downloadReceiver == null) throw new NullPointerException(
+                "downloadReceiver could not be null");
+
 		context.registerReceiver(downloadReceiver, new IntentFilter(
 				AbsDownloadService.ON_PROGRESS_CHANGE));
 	}
@@ -249,6 +266,10 @@ public class DownloadHelper implements ServiceConnection {
 	 */
 	public static void unregisterDownloadReceiver(Context context,
 			DownloadReceiver downloadReceiver) {
+        if (context == null) throw new NullPointerException("Context could not be null");
+        if (downloadReceiver == null) throw new NullPointerException(
+                "downloadReceiver could not be null");
+
 		context.unregisterReceiver(downloadReceiver);
 	}
 
@@ -256,7 +277,9 @@ public class DownloadHelper implements ServiceConnection {
 	 * Initialize DownloadHelper. Should be called in {@link Activity#onResume}.
 	 */
 	public void onActivityResume() {
-		assert !mIsActive;
+        if (mIsActive) {
+            throw new IllegalStateException("Download helper already resumed");
+        }
 		mIsActive = true;
 		
 		DownloadHelper.registerDownloadReceiver(mContext, mReceiver);
@@ -267,7 +290,9 @@ public class DownloadHelper implements ServiceConnection {
 	 * Pause DownloadHelper. Should be called in {@link Activity#onPause}.
 	 */
 	public void onActivityPause() {
-		assert mIsActive;
+        if (!mIsActive) {
+            throw new IllegalStateException("Download helper not resumed");
+        }
 		mIsActive = false;
 		DownloadHelper.unregisterDownloadReceiver(mContext, mReceiver);
 		mContext.unbindService(this);
