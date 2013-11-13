@@ -18,7 +18,6 @@ package com.appunite.syncer;
 
 import java.util.ArrayList;
 
-
 import android.annotation.SuppressLint;
 import android.app.Service;
 import android.content.Context;
@@ -27,9 +26,12 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Message;
 import android.os.PowerManager;
 import android.os.RemoteException;
+import android.text.format.DateUtils;
 
 /**
  * AbsDownloadService is an abstract service which simplify using downloaded
@@ -105,7 +107,7 @@ import android.os.RemoteException;
  */
 public abstract class AbsDownloadService extends Service {
 
-	public static final int DEFAULT_FORCE_UPDATE_TIME_MS = 10000;
+    public static final int DEFAULT_FORCE_UPDATE_TIME_MS = 10000;
 	public static final String ON_PROGRESS_CHANGE_EXTRA_URI = "extra_uri";
 	public static final String ON_PROGRESS_CHANGEEXTRA_IS_STATUS = "extra_status";
 	public static final String ON_PROGRESS_CHANGE = "com.appunite.syncer.ON_PROGRESS_CHANGE";
@@ -114,7 +116,10 @@ public abstract class AbsDownloadService extends Service {
 	public static final String EXTRA_BUNDLE = "extra_bundle";
 	public static final String EXTRA_WITH_FORCE = "extra_with_force";
 
-	private static class MyThread extends Thread {
+    private static final int STOP_SELF_MESSAGE = 0;
+    private static final long INACTIVITY_TIME_MILLIS = DateUtils.MINUTE_IN_MILLIS * 5;
+
+    private static class MyThread extends Thread {
 		private final AbsDownloadService mDownloadService;
 
 		public MyThread(AbsDownloadService downloadService, String threadName) {
@@ -136,6 +141,24 @@ public abstract class AbsDownloadService extends Service {
 		public int startId;
 
 	}
+
+    private class StopHandler extends Handler {
+
+        public StopHandler(){
+            super(getMainLooper());
+        }
+
+        @Override
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+            switch (msg.what){
+                case STOP_SELF_MESSAGE :
+                    stopSelf();
+                    break;
+                default: throw new RuntimeException("no msg : " + msg.what);
+            }
+        }
+    }
 
 	private IDownloadService.Stub mBinder = new IDownloadService.Stub() {
 
@@ -212,6 +235,9 @@ public abstract class AbsDownloadService extends Service {
 	
 	protected void download(Uri uri, Bundle bundle, boolean withForce, int startId) {
         if (uri == null) throw new NullPointerException("Uri could not be null");
+
+        notifyActive();
+
 		if (!withForce) {
 			AUSyncerStatus lastStatus = getLastStatus(uri);
 			if (lastStatus.isSuccess() && lastStatus.getLastDownloaded() != -1L) {
@@ -222,7 +248,7 @@ public abstract class AbsDownloadService extends Service {
 				}
 			}
 		}
-		Task task = new Task();
+        Task task = new Task();
 		task.uri = uri;
 		task.bundle = bundle;
 		task.withForce = withForce;
@@ -325,6 +351,8 @@ public abstract class AbsDownloadService extends Service {
 	private DownloadSharedPreference mDownloadSharedPreference;
 	private boolean mClose;
 	private PowerManager.WakeLock mWakeLock;
+    private Handler mStopHandler;
+
 
 	@Override
 	public IBinder onBind(Intent intent) {
@@ -334,7 +362,16 @@ public abstract class AbsDownloadService extends Service {
 		return mBinder;
 	}
 
-	@SuppressLint("Wakelock")
+    @Override
+    public void onRebind(Intent intent) {
+        super.onRebind(intent);
+
+        synchronized (this) {
+            mNumberOfListeners++;
+        }
+    }
+
+    @SuppressLint("Wakelock")
 	protected void run() {
 		for (;;) {
 			try {
@@ -428,6 +465,7 @@ public abstract class AbsDownloadService extends Service {
 	public void onCreate() {
 		super.onCreate();
 		PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        mStopHandler = new StopHandler();
 		mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
 				"Downloading data");
 		mWakeLock.setReferenceCounted(false);
@@ -441,6 +479,12 @@ public abstract class AbsDownloadService extends Service {
 		ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
 		NetworkInfo netInfo = cm.getActiveNetworkInfo();
         return netInfo != null && netInfo.isConnected();
+    }
+
+    private void notifyActive(){
+        mStopHandler.removeMessages(STOP_SELF_MESSAGE);
+        mStopHandler.sendMessageDelayed(mStopHandler
+                .obtainMessage(STOP_SELF_MESSAGE), INACTIVITY_TIME_MILLIS); 
     }
 	
 	@Override

@@ -388,6 +388,7 @@ public class DownloadHelper implements ServiceConnection {
 	private void reconnect() {
 		mDownloadService = null;
 		Intent downloadService = new Intent(mServiceActionName);
+        mContext.startService(downloadService);
 		boolean foundService = mContext.bindService(downloadService, this,
 				Service.BIND_AUTO_CREATE);
 		if (!foundService) {
